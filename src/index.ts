@@ -1,102 +1,46 @@
-import {
-  ASCIIFontRenderable,
-  BoxRenderable,
-  createCliRenderer,
-  InputRenderable,
-  TextRenderable,
-  TextAttributes,
-} from "@opentui/core";
+import { createCliRenderer, InputRenderableEvents } from "@opentui/core";
+import { upsertByUsername } from "./data/user_repository.js";
+import { createLoginView } from "./ui/components/login_view.js";
+import { createSplashView } from "./ui/components/splash_view.js";
 
 const renderer = await createCliRenderer({
   exitOnCtrlC: true,
   targetFps: 30,
-
 });
 
-let splashView: BoxRenderable;
-let loginView: BoxRenderable;
-let loginInput: InputRenderable;
+const loginView = createLoginView(renderer);
 
 const showLogin = () => {
   renderer.root.remove("splash");
-  renderer.root.add(loginView);
-  loginInput.focus();
+  renderer.root.add(loginView.view);
+  loginView.input.focus();
 };
 
-const enterButton = new BoxRenderable(renderer, {
-  width: 9,
-  height: 5,
-  border: true,
-  alignItems: "center",
-  justifyContent: "center",
-  onMouseUp: showLogin,
-});
-enterButton.add(new TextRenderable(renderer, { content: "enter" }));
+const splashView = createSplashView(renderer, { onEnter: showLogin });
 
-splashView = new BoxRenderable(renderer, {
-  id: "splash",
-  alignItems: "center",
-  justifyContent: "center",
-  flexGrow: 1,
-});
+renderer.root.add(splashView.view);
 
-const splashContent = new BoxRenderable(renderer, {
-  flexDirection: "column",
-  alignItems: "center",
-  gap: 1,
-});
-splashContent.add(new ASCIIFontRenderable(renderer, { font: "block", text: "CHUI" }));
-splashContent.add(
-  new TextRenderable(renderer, {
-    content: "instant messenger for the terminal",
-    attributes: TextAttributes.DIM,
-  }),
-);
-splashContent.add(enterButton);
-splashView.add(splashContent);
+let isSubmitting = false;
 
-loginInput = new InputRenderable(renderer, {
-  id: "username-input",
-  width: 24,
-  placeholder: "Enter username...",
-});
+loginView.input.on(InputRenderableEvents.ENTER, async (value: string) => {
+  if (isSubmitting) {
+    return;
+  }
 
-const loginButton = new BoxRenderable(renderer, {
-  width: 9,
-  height: 3,
-  border: true,
-  alignItems: "center",
-  justifyContent: "center",
-});
-loginButton.add(
-  new TextRenderable(renderer, {
-    content: "login",
-    fg: "#444444",
-  }),
-);
+  const username = value ?? "";
+  loginView.setStatus("Saving/Loading...", "#FBBF24");
+  isSubmitting = true;
 
-loginView = new BoxRenderable(renderer, {
-  id: "login",
-  alignItems: "center",
-  justifyContent: "center",
-  flexGrow: 1,
+  try {
+    const result = await upsertByUsername(username);
+    loginView.setStatus(
+      `Logged in as ${result.username} (${result.userId})`,
+      "#34D399",
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    loginView.setStatus(message, "#F87171");
+  } finally {
+    isSubmitting = false;
+  }
 });
-
-const loginContent = new BoxRenderable(renderer, {
-  flexDirection: "column",
-  alignItems: "center",
-  gap: 1,
-});
-loginContent.add(new TextRenderable(renderer, { content: "username" }));
-
-const loginRow = new BoxRenderable(renderer, {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 1,
-});
-loginRow.add(loginInput);
-loginRow.add(loginButton);
-loginContent.add(loginRow);
-loginView.add(loginContent);
-
-renderer.root.add(splashView);
