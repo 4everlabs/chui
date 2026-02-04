@@ -1,0 +1,378 @@
+OpenTUI + Convex (Bun) - MVP #0: Username login screen (Jan 2026)
+=================================================================
+
+Goal
+----
+A terminal UI (TUI) that shows a single prompt:
+  "What's your username?"
+User types a username and presses Enter.
+
+Behavior:
+- If the username already exists in Convex DB -> treat as "logged in".
+- If it does not exist -> create the user and then treat as "logged in".
+- No passwords, no sessions, no auth providers. This is purely to unblock TUI iteration.
+
+Technical spec (MVP #0, Jan 2026 best practices)
+------------------------------------------------
+1) Data model (Convex)
+   Table: users
+   - username: string (unique, normalized)
+   - _creationTime: number (ms epoch, system field added by Convex)
+     Optional: createdAt: number (ms epoch) only if you need custom timestamps.
+
+   Index:
+   - by_username (username)
+
+2) Backend API surface
+   Mutation: users.upsertByUsername({ username: string }) -> { userId, username }
+     - normalize username (trim + lowercase)
+     - validate: 3..20 chars, [a-z0-9_]
+     - use argument validators (v.string())
+     - query with .withIndex("by_username").unique()
+     - if exists return existing
+     - else insert and return
+     - await all async calls (Convex best practice)
+
+3) TUI behavior (OpenTUI core, imperative)
+   Screen: Login
+   Components:
+   - Title text
+   - Instruction text
+   - Input field (focused)
+   - Status line (errors / loading / success)
+
+   Events:
+   - Input ENTER: call Convex mutation users.upsertByUsername
+   - On success: update status line or swap screen to a "LoggedIn placeholder"
+
+4) Runtime
+   - Bun executes the TUI process.
+   - Convex dev server runs in a separate terminal and generates convex/_generated.
+   - TUI uses ConvexHttpClient (one-shot mutation) from convex/browser.
+
+Convex best-practice notes (Jan 2026)
+-------------------------------------
+- Await all promises in Convex functions (avoid floating promises).
+- Prefer .withIndex/.withSearchIndex over .filter; keep .collect for small results.
+- Avoid redundant indexes; for this MVP only by_username is needed.
+- Use argument validators on all public functions.
+
+References used (checked Jan 2026)
+----------------------------------
+- Convex Bun client docs: https://docs.convex.dev/client/javascript/bun
+- ConvexHttpClient API: https://docs.convex.dev/api/classes/browser.ConvexHttpClient
+- Convex best practices: https://docs.convex.dev/production/best-practices
+- Convex schemas: https://docs.convex.dev/database/schemas
+- Convex indexes: https://docs.convex.dev/database/reading-data/indexes
+- OpenTUI getting started: https://opentui.com/docs/getting-started
+- OpenTUI Input docs: https://opentui.com/docs/components/input
+
+================================================================================
+PART A - Create the Bun project + install deps
+================================================================================
+
+0) Prereqs
+- Bun installed: https://bun.sh
+- A terminal that supports ANSI well (iTerm2 / Terminal.app / Kitty / etc.)
+- Convex CLI runs via bunx (recommended).
+- Zig is only required if you build OpenTUI native code.
+
+1) Create project folder
+Option A (recommended): create-tui (core template)
+  bunx create-tui@latest -t core tui-chat
+  cd tui-chat
+
+  Note: options must come before the app name (per create-tui rules).
+
+Option B (manual)
+  mkdir tui-chat
+  cd tui-chat
+  bun init -y
+
+2) Install packages (latest)
+  bun add convex @opentui/core
+
+3) Create TypeScript config (tsconfig.json)
+  Use ESM modules.
+
+  tsconfig.json:
+  {
+    "compilerOptions": {
+      "target": "ES2022",
+      "module": "ES2022",
+      "moduleResolution": "Bundler",
+      "strict": true,
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "types": ["bun-types"]
+    }
+  }
+
+4) Add run scripts to package.json (recommended)
+  package.json:
+  {
+    ...
+    "type": "module",
+    "scripts": {
+      "dev": "bun run --watch src/index.ts",
+      "start": "bun run src/index.ts"
+    }
+  }
+
+================================================================================
+PART B - Initialize Convex backend + create users table and mutation
+================================================================================
+
+1) Run Convex dev (leave it running in its own terminal)
+  bunx convex dev
+
+  What happens:
+  - you authenticate in the browser
+  - a dev deployment is created
+  - convex/ directory is created (if missing)
+  - .env.local is created with CONVEX_DEPLOYMENT and URLs
+
+2) After it initializes, you should now have:
+  convex/
+    _generated/
+    ...
+  .env.local
+
+3) Create schema: convex/schema.ts
+  NOTE: This is minimal and only defines users.
+
+  convex/schema.ts
+  ----------------------------------------------------------------
+  import { defineSchema, defineTable } from "convex/server";
+  import { v } from "convex/values";
+
+  export default defineSchema({
+    users: defineTable({
+      username: v.string(),
+      // createdAt: v.number(), // optional; prefer _creationTime if you don't need custom
+    }).index("by_username", ["username"]),
+  });
+  ----------------------------------------------------------------
+
+4) Create mutation: convex/users.ts
+
+  convex/users.ts
+  ----------------------------------------------------------------
+  import { mutation } from "convex/server";
+  import { v } from "convex/values";
+
+  const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+
+  function normalizeUsername(raw: string): string {
+    return raw.trim().toLowerCase();
+  }
+
+  export const upsertByUsername = mutation({
+    args: { username: v.string() },
+    handler: async (ctx, args) => {
+      const username = normalizeUsername(args.username);
+
+      if (!USERNAME_RE.test(username)) {
+        throw new Error("Username must be 3-20 characters: [a-z0-9_]");
+      }
+
+      const existing = await ctx.db
+        .query("users")
+        .withIndex("by_username", (q) => q.eq("username", username))
+        .unique();
+
+      if (existing) {
+        return { userId: existing._id, username: existing.username };
+      }
+
+      const userId = await ctx.db.insert("users", {
+        username,
+        // createdAt: Date.now(), // only if you kept createdAt in the schema
+      });
+
+      return { userId, username };
+    },
+  });
+  ----------------------------------------------------------------
+
+5) Confirm Convex typegen is running
+- If bunx convex dev is still running, it will regenerate:
+  convex/_generated/api.d.ts
+  convex/_generated/api.js
+  convex/_generated/dataModel.d.ts
+- You should see users.upsertByUsername in the generated api object.
+
+================================================================================
+PART C - Build the first OpenTUI login screen (imperative)
+================================================================================
+
+We will:
+- Create a renderer with createCliRenderer({ exitOnCtrlC: true })
+- Render title + instruction + Input
+- On ENTER, call ConvexHttpClient mutation (one-shot)
+- Show "Logged in as <username> (<userId>)" on success
+
+1) Create file: src/index.ts
+
+  src/index.ts
+  ----------------------------------------------------------------
+  import {
+    createCliRenderer,
+    BoxRenderable,
+    TextRenderable,
+    InputRenderable,
+    InputRenderableEvents,
+  } from "@opentui/core";
+  import { ConvexHttpClient } from "convex/browser";
+  import { api } from "../convex/_generated/api.js";
+
+  // Read deployment URL from env. Bun auto-loads .env.
+  const CONVEX_URL = process.env.CONVEX_URL;
+  if (!CONVEX_URL) throw new Error("Missing CONVEX_URL in environment");
+
+  const client = new ConvexHttpClient(CONVEX_URL);
+
+  const renderer = await createCliRenderer({
+    exitOnCtrlC: true,
+  });
+
+  const root = new BoxRenderable(renderer, {
+    width: "100%",
+    height: "100%",
+    flexDirection: "column",
+    padding: 2,
+    gap: 1,
+  });
+
+  const title = new TextRenderable(renderer, {
+    content: "TUI Chat - Login",
+    fg: "#E2E8F0",
+  });
+
+  const help = new TextRenderable(renderer, {
+    content: "Enter a username (3-20 chars, a-z 0-9 _).",
+    fg: "#94A3B8",
+  });
+
+  const input = new InputRenderable(renderer, {
+    id: "username-input",
+    placeholder: "username",
+    width: 30,
+  });
+
+  const status = new TextRenderable(renderer, {
+    content: " ",
+    fg: "#94A3B8",
+  });
+
+  root.add(title);
+  root.add(help);
+  root.add(input);
+  root.add(status);
+
+  renderer.root.add(root);
+  input.focus();
+
+  let isSubmitting = false;
+
+  function setStatus(message: string, color: string) {
+    status.setContent(message || " ");
+    status.setFg(color);
+  }
+
+  input.on(InputRenderableEvents.ENTER, async (value: string) => {
+    if (isSubmitting) return;
+    const raw = value ?? "";
+
+    setStatus("Saving/Loading...", "#FBBF24");
+    isSubmitting = true;
+
+    try {
+      const result = await client.mutation(api.users.upsertByUsername, {
+        username: raw,
+      });
+      setStatus(
+        `Logged in as ${result.username} (${result.userId})`,
+        "#34D399",
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setStatus(message, "#F87171");
+    } finally {
+      isSubmitting = false;
+    }
+  });
+  ----------------------------------------------------------------
+
+2) Create .env with your Convex deployment URL
+Convex creates .env.local for its own tooling, but your Bun app needs a URL.
+Set this in a project .env:
+
+  .env
+  CONVEX_URL=https://<your-deployment>.convex.cloud
+
+How to get it:
+- Copy the deployment URL from the Convex dashboard, or
+- Read it from the "convex dev" startup output (it prints the URL).
+
+================================================================================
+PART D - Run the TUI
+================================================================================
+
+Terminal A:
+  bunx convex dev
+(keep running)
+
+Terminal B:
+  bun run src/index.ts
+  # or: bun run dev
+
+You should see:
+- Title "TUI Chat - Login"
+- Input focused
+- After typing a username and pressing Enter:
+  - first time: creates user
+  - second time: returns existing user
+
+================================================================================
+PART E - What this unlocks next (not doing it yet)
+================================================================================
+
+Once this screen renders and the mutation works, the next minimal steps are:
+1) Inbox screen:
+   - list all users (users.listAll query)
+   - select one user to open a DM
+2) DM creation:
+   - dms.getOrCreate(userIdA, userIdB)
+3) Chat screen:
+   - subscribe to messages for dmId using ConvexClient (WebSocket)
+   - send messages via mutation
+
+But do not add these until your login screen feels good visually.
+
+================================================================================
+Troubleshooting / bug scan checklist
+================================================================================
+
+1) "Missing CONVEX_URL"
+- Create .env and set CONVEX_URL to your convex.cloud deployment URL.
+
+2) Convex typegen missing api.users.upsertByUsername
+- Ensure bunx convex dev is running.
+- Ensure convex/users.ts exports upsertByUsername.
+- Restart convex dev after schema changes if necessary.
+
+3) Input does not submit on Enter
+- Use InputRenderableEvents.ENTER (not a custom "submit" event).
+- Ensure input.focus() is called.
+
+4) ESM import errors
+- Ensure package.json has "type": "module".
+- Import generated api with .js extension as shown.
+
+5) Terminal left in a weird state
+- Avoid process.exit(); use renderer.destroy() or exitOnCtrlC: true.
+
+================================================================================
+End
+================================================================================
