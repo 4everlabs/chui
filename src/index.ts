@@ -1,13 +1,20 @@
+<<<<<<< Updated upstream
 import { createCliRenderer, InputRenderableEvents } from "@opentui/core";
 import { upsertByUsername } from "./data/user_repository.js";
 import { createLoginView } from "./ui/components/login_view.js";
 import { createSplashView } from "./ui/components/splash_view.js";
+=======
+import { createCliRenderer } from "@opentui/core";
+import { createLoginScreen } from "./ui/screens/login";
+import { createSplashScreen } from "./ui/screens/splash";
+>>>>>>> Stashed changes
 
 const renderer = await createCliRenderer({
   exitOnCtrlC: true,
   targetFps: 30,
 });
 
+<<<<<<< Updated upstream
 const loginView = createLoginView(renderer);
 
 const showLogin = () => {
@@ -44,3 +51,16 @@ loginView.input.on(InputRenderableEvents.ENTER, async (value: string) => {
     isSubmitting = false;
   }
 });
+=======
+const { view: loginView, input: loginInput } = createLoginScreen(renderer);
+
+const splashView = createSplashScreen(renderer, {
+  onEnter: () => {
+    renderer.root.remove("splash");
+    renderer.root.add(loginView);
+    loginInput.focus();
+  },
+});
+
+renderer.root.add(splashView);
+>>>>>>> Stashed changes

@@ -1,16 +1,22 @@
-OpenTUI + Convex (Bun) - MVP #0: Username login screen (Jan 2026)
-=================================================================
+OpenTUI + Convex (Bun) - MVP #0: Design-system-first login flow (Jan 2026)
+=========================================================================
 
 Goal
 ----
-A terminal UI (TUI) that shows a single prompt:
-  "What's your username?"
-User types a username and presses Enter.
+Build a design-system-first TUI with a simple splash + login flow.
+All UI styling must come from a shared design system and reusable components.
 
 Behavior:
-- If the username already exists in Convex DB -> treat as "logged in".
-- If it does not exist -> create the user and then treat as "logged in".
-- No passwords, no sessions, no auth providers. This is purely to unblock TUI iteration.
+- Splash screen shows "CHUI", tagline, and a square "enter" button.
+- Clicking "enter" swaps to the login screen.
+- Login screen shows:
+  - subheading label "username"
+  - input field
+  - login button (text color #444444)
+- When login is wired to Convex:
+  - If the username already exists -> treat as "logged in".
+  - If it does not exist -> create the user and then treat as "logged in".
+  - No passwords, no sessions, no auth providers. This is purely to unblock TUI iteration.
 
 Technical spec (MVP #0, Jan 2026 best practices)
 ------------------------------------------------
@@ -33,15 +39,18 @@ Technical spec (MVP #0, Jan 2026 best practices)
      - else insert and return
      - await all async calls (Convex best practice)
 
-3) TUI behavior (OpenTUI core, imperative)
-   Screen: Login
+3) TUI behavior (OpenTUI core, imperative, design-system-first)
+   Screens:
+   - Splash (CHUI + tagline + square enter button)
+   - Login (subheading label + input + login button)
+
    Components:
-   - Title text
-   - Instruction text
-   - Input field (focused)
-   - Status line (errors / loading / success)
+   - Centralized design system (colors, spacing, sizes, text styles)
+   - Reusable button component that reads design tokens
+   - Screen factory functions that compose renderables
 
    Events:
+   - Splash enter button: swap to login screen
    - Input ENTER: call Convex mutation users.upsertByUsername
    - On success: update status line or swap screen to a "LoggedIn placeholder"
 
@@ -60,6 +69,7 @@ Convex best-practice notes (Jan 2026)
 References used (checked Jan 2026)
 ----------------------------------
 - Convex Bun client docs: https://docs.convex.dev/client/javascript/bun
+- Convex Bun quickstart: https://docs.convex.dev/quickstart/bun
 - ConvexHttpClient API: https://docs.convex.dev/api/classes/browser.ConvexHttpClient
 - Convex best practices: https://docs.convex.dev/production/best-practices
 - Convex schemas: https://docs.convex.dev/database/schemas
@@ -120,10 +130,10 @@ Option B (manual)
   }
 
 ================================================================================
-PART B - Initialize Convex backend + create users table and mutation
+PART B - Convex backend (bare minimum, step-by-step)
 ================================================================================
 
-1) Run Convex dev (leave it running in its own terminal)
+1) Start the Convex dev server (keep it running)
   bunx convex dev
 
   What happens:
@@ -132,15 +142,13 @@ PART B - Initialize Convex backend + create users table and mutation
   - convex/ directory is created (if missing)
   - .env.local is created with CONVEX_DEPLOYMENT and URLs
 
-2) After it initializes, you should now have:
+2) Confirm files exist
   convex/
     _generated/
     ...
   .env.local
 
-3) Create schema: convex/schema.ts
-  NOTE: This is minimal and only defines users.
-
+3) Create the minimal schema (users table + index)
   convex/schema.ts
   ----------------------------------------------------------------
   import { defineSchema, defineTable } from "convex/server";
@@ -154,8 +162,7 @@ PART B - Initialize Convex backend + create users table and mutation
   });
   ----------------------------------------------------------------
 
-4) Create mutation: convex/users.ts
-
+4) Create the minimal mutation (upsert by username)
   convex/users.ts
   ----------------------------------------------------------------
   import { mutation } from "convex/server";
@@ -195,116 +202,85 @@ PART B - Initialize Convex backend + create users table and mutation
   });
   ----------------------------------------------------------------
 
-5) Confirm Convex typegen is running
-- If bunx convex dev is still running, it will regenerate:
+5) Wait for typegen to update
+- Keep bunx convex dev running; it regenerates:
   convex/_generated/api.d.ts
   convex/_generated/api.js
   convex/_generated/dataModel.d.ts
 - You should see users.upsertByUsername in the generated api object.
 
+Bare minimum backend checklist
+------------------------------
+- convex dev server running
+- users table + by_username index in schema
+- users.upsertByUsername mutation
+- api generated (users.upsertByUsername shows up)
+
 ================================================================================
-PART C - Build the first OpenTUI login screen (imperative)
+PART C - Build splash + login screens (design system first)
 ================================================================================
 
 We will:
-- Create a renderer with createCliRenderer({ exitOnCtrlC: true })
-- Render title + instruction + Input
-- On ENTER, call ConvexHttpClient mutation (one-shot)
-- Show "Logged in as <username> (<userId>)" on success
+- Create a design system module and reusable UI components
+- Build splash + login screens using those shared styles
+- Wire screens in src/index.ts and swap on "enter"
 
-1) Create file: src/index.ts
+1) Create the design system first (single source of truth)
 
-  src/index.ts
+  src/ui/design_system.ts
   ----------------------------------------------------------------
-  import {
-    createCliRenderer,
-    BoxRenderable,
-    TextRenderable,
-    InputRenderable,
-    InputRenderableEvents,
-  } from "@opentui/core";
-  import { ConvexHttpClient } from "convex/browser";
-  import { api } from "../convex/_generated/api.js";
-
-  // Read deployment URL from env. Bun auto-loads .env.
-  const CONVEX_URL = process.env.CONVEX_URL;
-  if (!CONVEX_URL) throw new Error("Missing CONVEX_URL in environment");
-
-  const client = new ConvexHttpClient(CONVEX_URL);
-
-  const renderer = await createCliRenderer({
-    exitOnCtrlC: true,
-  });
-
-  const root = new BoxRenderable(renderer, {
-    width: "100%",
-    height: "100%",
-    flexDirection: "column",
-    padding: 2,
-    gap: 1,
-  });
-
-  const title = new TextRenderable(renderer, {
-    content: "TUI Chat - Login",
-    fg: "#E2E8F0",
-  });
-
-  const help = new TextRenderable(renderer, {
-    content: "Enter a username (3-20 chars, a-z 0-9 _).",
-    fg: "#94A3B8",
-  });
-
-  const input = new InputRenderable(renderer, {
-    id: "username-input",
-    placeholder: "username",
-    width: 30,
-  });
-
-  const status = new TextRenderable(renderer, {
-    content: " ",
-    fg: "#94A3B8",
-  });
-
-  root.add(title);
-  root.add(help);
-  root.add(input);
-  root.add(status);
-
-  renderer.root.add(root);
-  input.focus();
-
-  let isSubmitting = false;
-
-  function setStatus(message: string, color: string) {
-    status.setContent(message || " ");
-    status.setFg(color);
-  }
-
-  input.on(InputRenderableEvents.ENTER, async (value: string) => {
-    if (isSubmitting) return;
-    const raw = value ?? "";
-
-    setStatus("Saving/Loading...", "#FBBF24");
-    isSubmitting = true;
-
-    try {
-      const result = await client.mutation(api.users.upsertByUsername, {
-        username: raw,
-      });
-      setStatus(
-        `Logged in as ${result.username} (${result.userId})`,
-        "#34D399",
-      );
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setStatus(message, "#F87171");
-    } finally {
-      isSubmitting = false;
-    }
-  });
+  - colors: red, teal, yellow, white, and gray scale
+  - spacing: xs, sm
+  - sizes: inputWidth, buttonSquare, buttonWide, buttonHeight
+  - textStyles: heading, subheading, body, muted
+  - helpers: createHeadingText, createSubheadingText, createBodyText
+  - buttonStyles: primary/accent/danger/muted
   ----------------------------------------------------------------
 
-2) Create .env with your Convex deployment URL
+  Rule: no ad-hoc styling outside the design system.
+
+2) Create reusable UI components
+
+  src/ui/components/button.ts
+  ----------------------------------------------------------------
+  createButton(renderer, { label, width, height, variant, onPress })
+  - uses BoxRenderable + TextRenderable
+  - reads colors from buttonStyles in the design system
+  - onMouseUp triggers onPress
+  ----------------------------------------------------------------
+
+3) Create screens that consume the design system
+
+  src/ui/screens/splash.ts
+  ----------------------------------------------------------------
+  - ASCIIFont "CHUI" (teal)
+  - body text tagline (body style)
+  - square "enter" button (accent/yellow)
+  - accepts onEnter callback
+  ----------------------------------------------------------------
+
+  src/ui/screens/login.ts
+  ----------------------------------------------------------------
+  - subheading label "username"
+  - input width = sizes.inputWidth
+  - login button (muted), text color #444444
+  - exports { view, input } for wiring
+  ----------------------------------------------------------------
+
+4) Wire it in src/index.ts (imperative root setup)
+
+  - create renderer
+  - create login screen + splash screen
+  - add splash to root
+  - onEnter: remove splash, add login, focus input
+  - include .ts extensions in local imports
+
+5) Later (when wiring Convex):
+  - handle InputRenderableEvents.ENTER on the login input
+  - call users.upsertByUsername via ConvexHttpClient
+  - show status using design-system text styles
+
+6) Create .env with your Convex deployment URL
 Convex creates .env.local for its own tooling, but your Bun app needs a URL.
 Set this in a project .env:
 
