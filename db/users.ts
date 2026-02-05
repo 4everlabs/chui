@@ -18,11 +18,17 @@ const parseUsersCsv = (contents: string): UserRecord[] => {
   const dataLines = lines.slice(1);
 
   return dataLines
-    .map((line) => line.split(","))
-    .filter((columns) => columns.length >= 2)
-    .map((columns) => ({
-      userId: Number(columns[0]),
-      username: columns[1],
+    .map((line): [string, string] | null => {
+      const [userIdRaw, usernameRaw] = line.split(",");
+      if (!userIdRaw || !usernameRaw) {
+        return null;
+      }
+      return [userIdRaw, usernameRaw];
+    })
+    .filter((tuple): tuple is [string, string] => tuple !== null)
+    .map(([userIdRaw, username]) => ({
+      userId: Number(userIdRaw),
+      username,
     }))
     .filter((user) => Number.isFinite(user.userId) && user.username.length > 0);
 };

@@ -29,7 +29,7 @@ export const sizes = {
 
 export type TextStyle = {
   fg: string;
-  attributes?: TextAttributes;
+  attributes?: number;
 };
 
 export const textStyles: Record<"heading" | "subheading" | "body" | "muted", TextStyle> = {
