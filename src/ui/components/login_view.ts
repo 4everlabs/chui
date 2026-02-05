@@ -12,7 +12,14 @@ type LoginView = {
   setStatus: (message: string, color: string) => void;
 };
 
-export const createLoginView = (renderer: CliRenderer): LoginView => {
+type LoginViewOptions = {
+  onSubmit?: (value: string) => void;
+};
+
+export const createLoginView = (
+  renderer: CliRenderer,
+  options: LoginViewOptions = {},
+): LoginView => {
   const loginInput = new InputRenderable(renderer, {
     id: "username-input",
     width: 24,
@@ -25,6 +32,9 @@ export const createLoginView = (renderer: CliRenderer): LoginView => {
     border: true,
     alignItems: "center",
     justifyContent: "center",
+    onMouseUp: () => {
+      options.onSubmit?.(loginInput.value);
+    },
   });
   loginButton.add(
     new TextRenderable(renderer, {
@@ -64,8 +74,8 @@ export const createLoginView = (renderer: CliRenderer): LoginView => {
   loginView.add(loginContent);
 
   const setStatus = (message: string, color: string) => {
-    status.setContent(message || " ");
-    status.setFg(color);
+    status.content = message || " ";
+    status.fg = color;
   };
 
   return {
