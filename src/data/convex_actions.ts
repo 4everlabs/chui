@@ -29,13 +29,14 @@ export type AuthLoginResult = {
   username: string;
 };
 
-export const signUpWithUsernameAndPassword = async (
+export const signUpWithUsernameEmailAndPassword = async (
   username: string,
+  email: string,
   password: string,
 ): Promise<AuthLoginResult> => {
   const result = await runMutation<AuthLoginResult>(
-    "auth:signUpWithUsernameAndPassword",
-    { username, password },
+    "auth:signUpWithUsernameEmailAndPassword",
+    { username, email, password },
   );
 
   setAuthToken(result.token);
@@ -44,19 +45,23 @@ export const signUpWithUsernameAndPassword = async (
   return result;
 };
 
-export const signInWithUsernameAndPassword = async (
-  username: string,
+export const signInWithEmailAndPassword = async (
+  email: string,
   password: string,
 ): Promise<AuthLoginResult> => {
   const result = await runMutation<AuthLoginResult>(
-    "auth:signInWithUsernameAndPassword",
-    { username, password },
+    "auth:signInWithEmailAndPassword",
+    { email, password },
   );
 
   setAuthToken(result.token);
   setConvexAuthToken(result.token);
 
   return result;
+};
+
+export const listProfiles = async (): Promise<{ username: string; email?: string }[]> => {
+  return await runQuery("users:listProfiles", {});
 };
 
 export const signOut = async (): Promise<void> => {

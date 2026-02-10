@@ -1,13 +1,23 @@
 import {
   BoxRenderable,
   createCliRenderer,
-  InputRenderableEvents,
   LayoutEvents,
   TextRenderable,
   type CliRenderer,
 } from "@opentui/core";
-import { upsertByUsername } from "./data/user_repository.js";
-import { createHomeView, createLoginView, createSplashView } from "./ui/components/index.js";
+import {
+  signInWithEmailAndPassword,
+  signUpWithUsernameEmailAndPassword,
+  listProfiles,
+} from "./data/convex_actions.js";
+import {
+  createHomeView,
+  createLoginView,
+  createSignUpView,
+  createSplashView,
+  createUsersListView,
+  type UserListItem,
+} from "./ui/components/index.js";
 import {
   colors,
   getViewportConstraintMessage,
@@ -20,16 +30,22 @@ const renderer = await createCliRenderer({
   targetFps: 30,
 });
 
-type AppRoute = "splash" | "login" | "home";
+type AppRoute = "splash" | "login" | "signup" | "home" | "users";
 
-const homeView = createHomeView(renderer);
 const minSizeView = createMinSizeView(renderer);
 let activeRoute: AppRoute = "splash";
+
+let loginView: ReturnType<typeof createLoginView>;
+let signUpView: ReturnType<typeof createSignUpView>;
+let homeView: ReturnType<typeof createHomeView>;
+let usersListView: ReturnType<typeof createUsersListView>;
 
 const renderCurrentRoute = () => {
   removeIfPresent(renderer, "splash");
   removeIfPresent(renderer, "login");
+  removeIfPresent(renderer, "signup");
   removeIfPresent(renderer, "home");
+  removeIfPresent(renderer, "users");
   removeIfPresent(renderer, "min-size");
 
   if (!isViewportSupported(renderer.width, renderer.height)) {
@@ -45,7 +61,19 @@ const renderCurrentRoute = () => {
 
   if (activeRoute === "login") {
     renderer.root.add(loginView.view);
-    loginView.input.focus();
+    loginView.focus();
+    return;
+  }
+
+  if (activeRoute === "signup") {
+    renderer.root.add(signUpView.view);
+    signUpView.focus();
+    return;
+  }
+
+  if (activeRoute === "users") {
+    renderer.root.add(usersListView.view);
+    usersListView.focus();
     return;
   }
 
@@ -57,25 +85,45 @@ const showHome = () => {
   renderCurrentRoute();
 };
 
+const showLogin = () => {
+  activeRoute = "login";
+  renderCurrentRoute();
+};
+
+const showSignUp = () => {
+  activeRoute = "signup";
+  renderCurrentRoute();
+};
+
+const showUsers = async () => {
+  activeRoute = "users";
+  renderCurrentRoute();
+  try {
+    const users = await listProfiles();
+    usersListView.setUsers(users as UserListItem[]);
+  } catch {
+    usersListView.setUsers([]);
+  }
+};
+
 let isSubmitting = false;
 
-let loginView: ReturnType<typeof createLoginView>;
+const handleLogin = async (email: string, password: string) => {
+  if (isSubmitting) return;
 
-const handleLogin = async (value: string) => {
-  if (isSubmitting) {
+  const e = (email ?? "").trim();
+  const p = password ?? "";
+  if (!e || !p) {
+    loginView.setStatus("Email and password required", "#F87171");
     return;
   }
 
-  const username = value ?? "";
-  loginView.setStatus("Saving/Loading...", "#FBBF24");
+  loginView.setStatus("Signing in...", "#FBBF24");
   isSubmitting = true;
 
   try {
-    const result = await upsertByUsername(username);
-    loginView.setStatus(
-      `Logged in as ${result.username} (${result.userId})`,
-      "#34D399",
-    );
+    const result = await signInWithEmailAndPassword(e, p);
+    loginView.setStatus(`Logged in as ${result.username}`, "#34D399");
     showHome();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -85,21 +133,60 @@ const handleLogin = async (value: string) => {
   }
 };
 
+const handleSignUp = async (
+  username: string,
+  email: string,
+  password: string,
+) => {
+  if (isSubmitting) return;
+
+  const u = (username ?? "").trim();
+  const e = (email ?? "").trim();
+  const p = password ?? "";
+  if (!u || !e || !p) {
+    signUpView.setStatus("Username, email, and password required", "#F87171");
+    return;
+  }
+  if (!e.includes("@")) {
+    signUpView.setStatus("Valid email required for password reset", "#F87171");
+    return;
+  }
+
+  signUpView.setStatus("Creating account...", "#FBBF24");
+  isSubmitting = true;
+
+  try {
+    const result = await signUpWithUsernameEmailAndPassword(u, e, p);
+    signUpView.setStatus(`Logged in as ${result.username}`, "#34D399");
+    showHome();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    signUpView.setStatus(message, "#F87171");
+  } finally {
+    isSubmitting = false;
+  }
+};
+
 loginView = createLoginView(renderer, {
   onSubmit: handleLogin,
+  onSignUpClick: showSignUp,
 });
 
-const showLogin = () => {
-  activeRoute = "login";
-  renderCurrentRoute();
-};
+signUpView = createSignUpView(renderer, {
+  onSubmit: handleSignUp,
+  onBackToLogin: showLogin,
+});
+
+homeView = createHomeView(renderer, {
+  onUsersClick: showUsers,
+});
+
+usersListView = createUsersListView(renderer);
 
 const splashView = createSplashView(renderer, { onEnter: showLogin });
 
 renderer.root.on(LayoutEvents.RESIZED, renderCurrentRoute);
 renderCurrentRoute();
-
-loginView.input.on(InputRenderableEvents.ENTER, handleLogin);
 
 function removeIfPresent(renderer: CliRenderer, id: string) {
   if (renderer.root.getRenderable(id)) {

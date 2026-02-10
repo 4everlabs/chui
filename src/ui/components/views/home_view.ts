@@ -1,12 +1,23 @@
-import { BoxRenderable, type CliRenderer } from "@opentui/core";
-import { spacing } from "../../design";
+import {
+  BoxRenderable,
+  TextRenderable,
+  type CliRenderer,
+} from "@opentui/core";
+import { colors, spacing } from "../../design";
 import { createTextBubble } from "../primitives";
 
 type HomeView = {
   view: BoxRenderable;
 };
 
-export const createHomeView = (renderer: CliRenderer): HomeView => {
+type HomeViewOptions = {
+  onUsersClick?: () => void;
+};
+
+export const createHomeView = (
+  renderer: CliRenderer,
+  options: HomeViewOptions = {},
+): HomeView => {
   const homeView = new BoxRenderable(renderer, {
     id: "home",
     flexDirection: "column",
@@ -32,6 +43,21 @@ export const createHomeView = (renderer: CliRenderer): HomeView => {
       variant: "outgoing",
     }),
   );
+
+  if (options.onUsersClick) {
+    const usersLink = new BoxRenderable(renderer, {
+      id: "users-link",
+      paddingTop: spacing.sm,
+      onMouseUp: () => options.onUsersClick?.(),
+    });
+    usersLink.add(
+      new TextRenderable(renderer, {
+        content: "Users",
+        fg: colors.teal,
+      }),
+    );
+    homeView.add(usersLink);
+  }
 
   return { view: homeView };
 };

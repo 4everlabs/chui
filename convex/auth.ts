@@ -2,15 +2,15 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { authComponent, createAuth } from "./betterAuth/auth";
 
-const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+const USERNAME_RE = /^[a-z0-9]{3,20}$/;
 const USERNAME_EMAIL_DOMAIN = "users.chui.local";
 
 const normalizeUsername = (raw: string) => raw.trim().toLowerCase();
 
 const requireValidUsername = (rawUsername: string) => {
   const username = normalizeUsername(rawUsername);
-  if (!USERNAME_RE.test(username)) {
-    throw new Error("Username must be 3-20 characters: [a-z0-9_]");
+  if (!username || !USERNAME_RE.test(username)) {
+    throw new Error("Username: 3-20 letters/numbers, case insensitive");
   }
   return username;
 };
@@ -30,6 +30,7 @@ const upsertProfile = async (
   ctx: ProfileCtx,
   username: string,
   authUserId: string | undefined,
+  email?: string,
 ) => {
   const now = Date.now();
   const existing = await ctx.db
@@ -41,6 +42,7 @@ const upsertProfile = async (
     await ctx.db.patch(existing._id, {
       updatedAt: now,
       authUserId: authUserId ?? existing.authUserId,
+      ...(email !== undefined && { email }),
     });
     return;
   }
@@ -48,6 +50,7 @@ const upsertProfile = async (
   await ctx.db.insert("profiles", {
     username,
     authUserId,
+    email,
     createdAt: now,
     updatedAt: now,
   });
@@ -55,24 +58,29 @@ const upsertProfile = async (
 
 export const { getAuthUser } = authComponent.clientApi();
 
-export const signUpWithUsernameAndPassword = mutation({
+export const signUpWithUsernameEmailAndPassword = mutation({
   args: {
     username: v.string(),
+    email: v.string(),
     password: v.string(),
   },
   handler: async (ctx, args) => {
     const username = requireValidUsername(args.username);
+    const email = args.email.trim().toLowerCase();
+    if (!email || !email.includes("@")) {
+      throw new Error("Valid email required for password reset");
+    }
     const auth = createAuth(ctx);
 
     const result = await auth.api.signUpEmail({
       body: {
         name: username,
-        email: usernameToEmail(username),
+        email,
         password: args.password,
       },
     });
 
-    await upsertProfile(ctx, username, result.user.id);
+    await upsertProfile(ctx, username, result.user.id, email);
 
     return {
       token: result.token,
@@ -81,24 +89,28 @@ export const signUpWithUsernameAndPassword = mutation({
   },
 });
 
-export const signInWithUsernameAndPassword = mutation({
+export const signInWithEmailAndPassword = mutation({
   args: {
-    username: v.string(),
+    email: v.string(),
     password: v.string(),
   },
   handler: async (ctx, args) => {
-    const username = requireValidUsername(args.username);
+    let email = args.email.trim().toLowerCase();
+    if (!email) throw new Error("Email required");
+    if (!email.includes("@")) {
+      email = usernameToEmail(requireValidUsername(args.email));
+    }
     const auth = createAuth(ctx);
 
     const result = await auth.api.signInEmail({
       body: {
-        email: usernameToEmail(username),
+        email,
         password: args.password,
         rememberMe: true,
       },
     });
 
-    const resolvedUsername = normalizeUsername(result.user.name || username);
+    const resolvedUsername = normalizeUsername(result.user.name ?? "");
     await upsertProfile(ctx, resolvedUsername, result.user.id);
 
     return {

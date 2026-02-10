@@ -4,6 +4,7 @@ import { v } from "convex/values";
 export default defineSchema({
   profiles: defineTable({
     username: v.string(),
+    email: v.optional(v.string()),
     authUserId: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),

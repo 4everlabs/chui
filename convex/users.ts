@@ -1,14 +1,14 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+const USERNAME_RE = /^[a-z0-9]{3,20}$/;
 
 const normalizeUsername = (raw: string) => raw.trim().toLowerCase();
 
 const requireValidUsername = (rawUsername: string) => {
   const username = normalizeUsername(rawUsername);
   if (!USERNAME_RE.test(username)) {
-    throw new Error("Username must be 3-20 characters: [a-z0-9_]");
+    throw new Error("Username: 3-20 letters/numbers, case insensitive");
   }
   return username;
 };
@@ -74,5 +74,21 @@ export const getMyProfile = query({
         q.eq("authUserId", identity.subject),
       )
       .unique();
+  },
+});
+
+export const listProfiles = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return [];
+    }
+
+    const profiles = await ctx.db.query("profiles").collect();
+    return profiles.map((p) => ({
+      username: p.username,
+      email: p.email,
+    }));
   },
 });
