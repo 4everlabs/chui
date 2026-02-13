@@ -9,77 +9,68 @@
 ![Better%20Auth](https://img.shields.io/badge/auth-Better%20Auth-2563eb)
 ![Status](https://img.shields.io/badge/status-active%20development-f59e0b)
 
-CHUI is a terminal-first chat app built with OpenTUI, Convex, and Better Auth.
+A terminal chat app.
 
-## What You Can Do
+No browser. No mouse. Just messages.
 
-- Create an account and sign in from the terminal.
-- Browse other users and open direct message conversations.
-- Send and read messages in a keyboard-friendly TUI.
+## Install
 
-## Quick Start
+> Placeholder package name: `chui-cli`
 
-### 1) Install dependencies
+### npm
+
+```bash
+npm install -g chui-cli
+```
+
+### Homebrew
+
+```bash
+brew install chui-cli
+```
+
+## Run
+
+```bash
+chui
+```
+
+## What you do in CHUI
+
+- Sign up or log in.
+- Open a conversation.
+- Send messages.
+
+## Update
+
+### npm
+
+```bash
+npm update -g chui-cli
+```
+
+### Homebrew
+
+```bash
+brew upgrade chui-cli
+```
+
+## Troubleshooting
+
+- Use a terminal that supports modern TUI apps.
+- If auth breaks, restart CHUI.
+- If it feels laggy over SSH, your connection is the bottleneck.
+
+## Run from source (contributors)
 
 ```bash
 bun install
-```
-
-### 2) Start Convex
-
-```bash
 bun run convex:dev
-```
-
-### 3) Run the app
-
-In a second terminal:
-
-```bash
 bun dev
 ```
 
-## Environment Setup
-
-CHUI needs a Convex URL at runtime:
+Dev env vars:
 
 - `CONVEX_URL` or `NEXT_PUBLIC_CONVEX_URL`
-
-You also need these Convex deployment env vars for auth:
-
 - `BETTER_AUTH_SECRET`
 - `SITE_URL`
-
-Set them with:
-
-```bash
-bun x convex env set BETTER_AUTH_SECRET=$(openssl rand -base64 32)
-bun x convex env set SITE_URL http://localhost:3000
-```
-
-After Convex `_generated` files are available, regenerate Better Auth schema if needed:
-
-```bash
-bun run auth:generate-schema
-```
-
-## Scripts
-
-- `bun dev` - Run the TUI in watch mode.
-- `bun run convex:dev` - Start local Convex development.
-- `bun run auth:generate-schema` - Regenerate Better Auth schema.
-
-## Tech Stack
-
-- OpenTUI (`@opentui/core`)
-- Convex
-- Better Auth
-- TypeScript + Bun
-
-## Project Structure
-
-- `src/index.ts` - CLI/TUI entry point.
-- `src/app/` - App state, routing, actions, scheduling.
-- `src/ui/` - Layouts, UI components, and views.
-- `src/data/` - Session helpers and external data integrations.
-- `convex/` - Backend functions and auth setup.
