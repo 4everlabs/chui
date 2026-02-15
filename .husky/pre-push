@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+
+last_commit_subject="$(git log -1 --pretty=%s 2>/dev/null)"
+case "$last_commit_subject" in
+  "chore: bump version to v"*)
+    exit 0
+    ;;
+esac
+
+bun run version:bump || exit 1
+git add package.json README.md src/app/version.ts || exit 1
+
+next_version="$(bun --eval "const p = await Bun.file('package.json').json(); console.log(p.version);")"
+git commit -m "chore: bump version to v${next_version}" -- package.json README.md src/app/version.ts || exit 1
+
+echo "Created version bump commit v${next_version}. Push again to publish it."
+exit 1

@@ -1,2 +1,0 @@
-bun run version:bump
-git add package.json README.md

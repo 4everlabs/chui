@@ -6,6 +6,7 @@ type PackageJson = {
 
 const packagePath = new URL("../package.json", import.meta.url);
 const readmePath = new URL("../README.md", import.meta.url);
+const versionModulePath = new URL("../src/app/version.ts", import.meta.url);
 const versionBadgePattern =
   /!\[Version\]\(https:\/\/img\.shields\.io\/badge\/version-[^-]+-[^)]+\)/;
 
@@ -44,6 +45,12 @@ const run = async () => {
   if (updatedReadme !== readmeRaw) {
     await writeFile(readmePath, updatedReadme, "utf8");
   }
+
+  const versionModule = [
+    `export const APP_VERSION = "${nextVersion}";`,
+    "",
+  ].join("\n");
+  await writeFile(versionModulePath, versionModule, "utf8");
 };
 
 await run();

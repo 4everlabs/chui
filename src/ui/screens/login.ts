@@ -3,6 +3,7 @@ import {
   TextRenderable,
   type CliRenderer,
 } from "@opentui/core";
+import { APP_VERSION } from "../../app/version.js";
 import { colors, sizes, type StatusVariant } from "../design";
 import { createAuthFormLayout } from "../primitives/auth_form";
 import { createButton } from "../primitives/button";
@@ -69,6 +70,12 @@ export const createLoginScreen = (
     underline: true,
     onPress: options.onSignUpClick,
   });
+  formLayout.form.add(
+    new TextRenderable(renderer, {
+      content: `version: ${APP_VERSION}`,
+      fg: colors.gray500,
+    }),
+  );
 
   [emailInput, passwordInput].forEach((input) => {
     input.on(InputRenderableEvents.ENTER, submit);
