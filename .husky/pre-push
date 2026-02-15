@@ -13,8 +13,5 @@ git add package.json README.md src/app/version.ts || exit 1
 next_version="$(bun --eval "const p = await Bun.file('package.json').json(); console.log(p.version);")"
 git commit -m "chore: bump version to v${next_version}" -- package.json README.md src/app/version.ts || exit 1
 
-remote_name="${1:-origin}"
-git push --no-verify "$remote_name" || exit 1
-
-echo "Version bumped and pushed: v${next_version}"
-exit 0
+echo "Version bumped to v${next_version}. Re-run git push to publish this new commit."
+exit 1
