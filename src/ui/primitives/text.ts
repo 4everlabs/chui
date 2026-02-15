@@ -1,5 +1,5 @@
 import { type RenderContext } from "@opentui/core";
-import { createText, textStyles, type TextVariant } from "../../design";
+import { createText, textStyles, type TextVariant } from "../design";
 
 export function createLabel(
   renderer: RenderContext,

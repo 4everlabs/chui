@@ -3,12 +3,14 @@ import {
   TextRenderable,
   type CliRenderer,
 } from "@opentui/core";
-import { colors, sizes, type StatusVariant } from "../../design";
-import { createAuthFormLayout, createButton, createTextInput } from "../primitives";
+import { colors, sizes, type StatusVariant } from "../design";
+import { createAuthFormLayout } from "../primitives/auth_form";
+import { createButton } from "../primitives/button";
+import { createTextInput } from "../primitives/text_input";
 
 type TextInput = ReturnType<typeof createTextInput>;
 
-type SignUpView = {
+type SignUpScreen = {
   view: ReturnType<typeof createAuthFormLayout>["view"];
   usernameInput: TextInput;
   passwordInput: TextInput;
@@ -18,15 +20,15 @@ type SignUpView = {
   getValues: () => { username: string; password: string };
 };
 
-type SignUpViewOptions = {
+type SignUpScreenOptions = {
   onSubmit?: (username: string, password: string) => void;
   onBackToLogin?: () => void;
 };
 
-export const createSignUpView = (
+export const createSignUpScreen = (
   renderer: CliRenderer,
-  options: SignUpViewOptions = {},
-): SignUpView => {
+  options: SignUpScreenOptions = {},
+): SignUpScreen => {
   const usernameInput = createTextInput(renderer, {
     id: "signup-username-input",
     width: sizes.authInputWidth,

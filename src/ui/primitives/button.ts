@@ -1,5 +1,5 @@
 import { BoxRenderable, TextRenderable, type RenderContext } from "@opentui/core";
-import { buttonStyles, type ButtonVariant } from "../../design";
+import { buttonStyles, type ButtonVariant } from "../design";
 
 export type ButtonOptions = {
   id?: string;

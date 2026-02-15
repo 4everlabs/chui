@@ -1,50 +1,46 @@
-import {
-  ASCIIFontRenderable,
-  BoxRenderable,
-  type RenderContext,
-} from "@opentui/core";
+import { ASCIIFontRenderable, BoxRenderable, type CliRenderer } from "@opentui/core";
 import { colors, createBodyText, sizes, spacing } from "../design";
-import { createButton } from "../components/primitives";
+import { createButton } from "../primitives/button";
+import { createCenteredScreen } from "../layout";
 
-export type SplashScreenOptions = {
+type SplashScreenOptions = {
   onEnter: () => void;
 };
 
-export function createSplashScreen(renderer: RenderContext, options: SplashScreenOptions) {
-  const root = new BoxRenderable(renderer, {
-    id: "splash",
-    alignItems: "center",
-    justifyContent: "center",
-    flexGrow: 1,
+type SplashScreen = {
+  view: BoxRenderable;
+};
+
+export const createSplashScreen = (
+  renderer: CliRenderer,
+  options: SplashScreenOptions,
+): SplashScreen => {
+  const enterButton = createButton(renderer, {
+    id: "enter-button",
+    label: "enter",
+    width: sizes.buttonWide,
+    height: sizes.buttonTall,
+    variant: "accent",
+    onPress: options.onEnter,
   });
 
-  const content = new BoxRenderable(renderer, {
+  const splashView = createCenteredScreen(renderer, "splash");
+
+  const splashContent = new BoxRenderable(renderer, {
     flexDirection: "column",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.xs,
   });
-
-  content.add(
+  splashContent.add(
     new ASCIIFontRenderable(renderer, {
       font: "block",
       text: "CHUI",
       color: colors.teal,
     }),
   );
+  splashContent.add(createBodyText(renderer, "instant messenger for the terminal"));
+  splashContent.add(enterButton);
+  splashView.add(splashContent);
 
-  content.add(createBodyText(renderer, "instant messenger for the terminal"));
-
-  const enterButton = createButton(renderer, {
-    id: "enter-button",
-    label: "enter",
-    width: sizes.buttonSquare,
-    height: sizes.buttonSquare,
-    variant: "accent",
-    onPress: options.onEnter,
-  });
-  content.add(enterButton);
-
-  root.add(content);
-
-  return root;
-}
+  return { view: splashView };
+};

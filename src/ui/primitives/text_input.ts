@@ -1,5 +1,5 @@
 import { InputRenderable, type RenderContext } from "@opentui/core";
-import { sizes } from "../../design";
+import { sizes } from "../design";
 
 export type TextInputOptions = {
   id?: string;

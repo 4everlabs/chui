@@ -2,11 +2,14 @@ import {
   BoxRenderable,
   InputRenderableEvents,
   ScrollBoxRenderable,
+  TextAttributes,
   TextRenderable,
   type CliRenderer,
 } from "@opentui/core";
-import { colors, sizes, spacing } from "../../design";
-import { createButton, createTextBubble, createTextInput } from "../primitives";
+import { colors, spacing } from "../design";
+import { createButton } from "../primitives/button";
+import { createTextBubble } from "../primitives/text_bubble";
+import { createTextInput } from "../primitives/text_input";
 
 export type HomeChatUser = {
   username: string;
@@ -19,7 +22,7 @@ export type HomeChatMessage = {
   createdAt: number;
 };
 
-type HomeView = {
+type HomeScreen = {
   view: BoxRenderable;
   focus: () => void;
   setCurrentUsername: (username: string) => void;
@@ -30,22 +33,35 @@ type HomeView = {
   setStatus: (message: string, color?: string) => void;
 };
 
-type HomeViewOptions = {
+type HomeScreenOptions = {
   onSelectUser?: (username: string) => void | Promise<void>;
   onSendMessage?: (toUsername: string, body: string) => void | Promise<void>;
 };
 
-export const createHomeView = (
+export const createHomeScreen = (
   renderer: CliRenderer,
-  options: HomeViewOptions = {},
-): HomeView => {
+  options: HomeScreenOptions = {},
+): HomeScreen => {
+  const sidebarWidth = Math.max(22, Math.min(28, Math.floor(renderer.width * 0.24)));
+  const searchInputWidth = Math.max(12, sidebarWidth - 6);
+  const composerInputWidth = Math.max(
+    22,
+    Math.min(64, renderer.width - sidebarWidth - 16),
+  );
+  const replyButtonWidth = Math.max(
+    14,
+    Math.min(24, Math.floor((renderer.width - sidebarWidth - 8) * 0.5)),
+  );
+
   let currentUsername = "";
   let selectedUsername: string | null = null;
   let users: HomeChatUser[] = [];
   let messages: HomeChatMessage[] = [];
   let sending = false;
+  let userSearchQuery = "";
   let userRowIds: string[] = [];
-  let messageBubbleIds: string[] = [];
+  let messageRowIds: string[] = [];
+  const messagePlaceholderId = "chat-placeholder";
 
   const view = new BoxRenderable(renderer, {
     id: "home",
@@ -58,19 +74,20 @@ export const createHomeView = (
 
   const usersPanel = new BoxRenderable(renderer, {
     id: "chat-users-panel",
-    width: 28,
-    minWidth: 20,
+    width: sidebarWidth,
+    minWidth: 22,
     border: true,
     flexDirection: "column",
-    gap: spacing.xs,
+    gap: spacing.sm,
     padding: spacing.sm,
   });
 
-  const usersTitle = new TextRenderable(renderer, {
-    content: "Users",
-    fg: colors.teal,
+  const usersSearch = createTextInput(renderer, {
+    id: "chat-users-search",
+    width: searchInputWidth,
+    placeholder: "Search",
   });
-  usersPanel.add(usersTitle);
+  usersPanel.add(usersSearch);
 
   const usersScroll = new ScrollBoxRenderable(renderer, {
     id: "chat-users-scroll",
@@ -78,6 +95,24 @@ export const createHomeView = (
     stickyScroll: true,
     stickyStart: "top",
   });
+
+  const usersListTitleWrap = new BoxRenderable(renderer, {
+    id: "chat-users-list-title-wrap",
+    alignItems: "center",
+    justifyContent: "center",
+    flexGrow: 1,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+  });
+  const usersListTitle = new TextRenderable(renderer, {
+    id: "chat-users-list-title",
+    content: "User List",
+    fg: colors.gray100,
+    attributes: TextAttributes.BOLD,
+  });
+  usersListTitleWrap.add(usersListTitle);
+
+  usersPanel.add(usersListTitleWrap);
   usersPanel.add(usersScroll);
 
   const chatPanel = new BoxRenderable(renderer, {
@@ -89,48 +124,67 @@ export const createHomeView = (
     gap: spacing.xs,
   });
 
+  const chatTopControls = new BoxRenderable(renderer, {
+    id: "chat-top-controls",
+    flexDirection: "column",
+    gap: spacing.sm,
+  });
+
+  const chatMessageBox = new BoxRenderable(renderer, {
+    id: "chat-message-box",
+    border: true,
+    width: "70%",
+    minHeight: 5,
+    alignSelf: "flex-end",
+    alignItems: "center",
+    justifyContent: "center",
+  });
   const chatHeader = new TextRenderable(renderer, {
     id: "chat-header",
-    content: "Select a user to start chatting",
-    fg: colors.yellow,
+    content: "Message",
+    fg: colors.gray100,
   });
-  chatPanel.add(chatHeader);
+  chatMessageBox.add(chatHeader);
+
+  let submitMessage = () => {};
+  const replyButton = createButton(renderer, {
+    id: "chat-reply-button",
+    label: "Reply",
+    width: replyButtonWidth,
+    height: 5,
+    variant: "muted",
+    onPress: () => submitMessage(),
+  });
+
+  chatTopControls.add(chatMessageBox);
+  chatTopControls.add(replyButton);
+  chatPanel.add(chatTopControls);
 
   const messagesScroll = new ScrollBoxRenderable(renderer, {
     id: "chat-messages-scroll",
     flexGrow: 1,
     stickyScroll: true,
     stickyStart: "bottom",
-    border: true,
     padding: spacing.xs,
   });
   chatPanel.add(messagesScroll);
 
-  const composerRow = new BoxRenderable(renderer, {
-    id: "chat-composer-row",
-    flexDirection: "row",
+  const composerBox = new BoxRenderable(renderer, {
+    id: "chat-composer-box",
+    border: true,
+    padding: spacing.sm,
     alignItems: "center",
-    gap: spacing.xs,
+    justifyContent: "center",
   });
 
   const composerInput = createTextInput(renderer, {
     id: "chat-composer-input",
-    width: sizes.authInputWidth,
-    placeholder: "Type a message...",
-  });
-  let submitMessage = () => {};
-  const sendButton = createButton(renderer, {
-    id: "chat-send-button",
-    label: "Send",
-    width: sizes.buttonWide,
-    height: sizes.buttonHeight,
-    variant: "accent",
-    onPress: () => submitMessage(),
+    width: composerInputWidth,
+    placeholder: "User types here",
   });
 
-  composerRow.add(composerInput);
-  composerRow.add(sendButton);
-  chatPanel.add(composerRow);
+  composerBox.add(composerInput);
+  chatPanel.add(composerBox);
 
   const status = new TextRenderable(renderer, {
     id: "chat-status",
@@ -149,23 +203,28 @@ export const createHomeView = (
 
   const updateHeader = () => {
     if (!selectedUsername) {
-      chatHeader.content = "Select a user to start chatting";
+      chatHeader.content = "Message";
       return;
     }
 
-    chatHeader.content = `Conversation with ${selectedUsername}`;
+    chatHeader.content = selectedUsername;
   };
 
   const renderUsers = () => {
     userRowIds.forEach((id) => usersScroll.remove(id));
     userRowIds = [];
 
-    if (users.length === 0) {
+    const q = userSearchQuery.trim().toLowerCase();
+    const visibleUsers = q
+      ? users.filter((user) => user.username.toLowerCase().includes(q))
+      : users;
+
+    if (visibleUsers.length === 0) {
       const id = "chat-user-empty";
       usersScroll.add(
         new TextRenderable(renderer, {
           id,
-          content: "No users found",
+          content: q ? "No match" : "No users found",
           fg: colors.gray500,
         }),
       );
@@ -173,7 +232,7 @@ export const createHomeView = (
       return;
     }
 
-    users.forEach((user, index) => {
+    visibleUsers.forEach((user, index) => {
       const id = `chat-user-${index}`;
       const selected = user.username === selectedUsername;
       const row = new BoxRenderable(renderer, {
@@ -216,32 +275,25 @@ export const createHomeView = (
   };
 
   const renderMessages = () => {
-    messageBubbleIds.forEach((id) => messagesScroll.remove(id));
-    messageBubbleIds = [];
-
-    if (!selectedUsername) {
-      const id = "chat-empty-unselected";
-      messagesScroll.add(
-        createTextBubble(renderer, {
-          id,
-          text: "Pick a username on the left to open a conversation.",
-          variant: "system",
-        }),
-      );
-      messageBubbleIds.push(id);
-      return;
-    }
+    messageRowIds.forEach((id) => messagesScroll.remove(id));
+    messageRowIds = [];
 
     if (messages.length === 0) {
-      const id = "chat-empty-thread";
-      messagesScroll.add(
-        createTextBubble(renderer, {
-          id,
-          text: `No messages with ${selectedUsername} yet. Say hello.`,
-          variant: "system",
+      const placeholder = new BoxRenderable(renderer, {
+        id: messagePlaceholderId,
+        alignItems: "center",
+        justifyContent: "center",
+        flexGrow: 1,
+      });
+      placeholder.add(
+        new TextRenderable(renderer, {
+          content: "Chat",
+          fg: colors.gray100,
+          attributes: TextAttributes.BOLD,
         }),
       );
-      messageBubbleIds.push(id);
+      messagesScroll.add(placeholder);
+      messageRowIds.push(messagePlaceholderId);
       return;
     }
 
@@ -256,7 +308,7 @@ export const createHomeView = (
           variant,
         }),
       );
-      messageBubbleIds.push(bubbleId);
+      messageRowIds.push(bubbleId);
     });
 
     messagesScroll.scrollTo({
@@ -296,6 +348,10 @@ export const createHomeView = (
       });
   };
 
+  usersSearch.on(InputRenderableEvents.CHANGE, (value: string) => {
+    userSearchQuery = value;
+    renderUsers();
+  });
   composerInput.on(InputRenderableEvents.ENTER, submitMessage);
 
   updateHeader();

@@ -5,7 +5,7 @@ import {
   sizes,
   spacing,
   type MessageBubbleVariant,
-} from "../../design";
+} from "../design";
 
 export type TextBubbleOptions = {
   id?: string;

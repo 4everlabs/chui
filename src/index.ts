@@ -16,11 +16,17 @@ import {
   type ConversationSummary,
 } from "./data/convex_actions.js";
 import {
-  createHomeView,
-  createLoginView,
-  createSignUpView,
-  createSplashView,
-} from "./ui/components/index.js";
+  createHomeScreen,
+} from "./ui/screens/home.js";
+import {
+  createLoginScreen,
+} from "./ui/screens/login.js";
+import {
+  createSignUpScreen,
+} from "./ui/screens/signup.js";
+import {
+  createSplashScreen,
+} from "./ui/screens/splash.js";
 import {
   colors,
   getViewportConstraintMessage,
@@ -35,12 +41,12 @@ const renderer = await createCliRenderer({
 
 type AppRoute = "splash" | "login" | "signup" | "home";
 
-const minSizeView = createMinSizeView(renderer);
+const minSizeScreen = createMinSizeScreen(renderer);
 let activeRoute: AppRoute = "splash";
 
-let loginView: ReturnType<typeof createLoginView>;
-let signUpView: ReturnType<typeof createSignUpView>;
-let homeView: ReturnType<typeof createHomeView>;
+let loginScreen: ReturnType<typeof createLoginScreen>;
+let signUpScreen: ReturnType<typeof createSignUpScreen>;
+let homeScreen: ReturnType<typeof createHomeScreen>;
 let currentUsername: string | null = null;
 let selectedChatUsername: string | null = null;
 let conversationIdByUsername = new Map<string, string>();
@@ -53,30 +59,30 @@ const renderCurrentRoute = () => {
   removeIfPresent(renderer, "min-size");
 
   if (!isViewportSupported(renderer.width, renderer.height)) {
-    minSizeView.setSize(renderer.width, renderer.height);
-    renderer.root.add(minSizeView.view);
+    minSizeScreen.setSize(renderer.width, renderer.height);
+    renderer.root.add(minSizeScreen.view);
     return;
   }
 
   if (activeRoute === "splash") {
-    renderer.root.add(splashView.view);
+    renderer.root.add(splashScreen.view);
     return;
   }
 
   if (activeRoute === "login") {
-    renderer.root.add(loginView.view);
-    loginView.focus();
+    renderer.root.add(loginScreen.view);
+    loginScreen.focus();
     return;
   }
 
   if (activeRoute === "signup") {
-    renderer.root.add(signUpView.view);
-    signUpView.focus();
+    renderer.root.add(signUpScreen.view);
+    signUpScreen.focus();
     return;
   }
 
-  renderer.root.add(homeView.view);
-  homeView.focus();
+  renderer.root.add(homeScreen.view);
+  homeScreen.focus();
 };
 
 const showHome = async () => {
@@ -85,10 +91,10 @@ const showHome = async () => {
   try {
     await refreshHomeData();
   } catch (error) {
-    homeView.setUsers([]);
-    homeView.setMessages([]);
-    homeView.setSelectedUser(null);
-    homeView.setStatus(getErrorMessage(error), colors.error);
+    homeScreen.setUsers([]);
+    homeScreen.setMessages([]);
+    homeScreen.setSelectedUser(null);
+    homeScreen.setStatus(getErrorMessage(error), colors.error);
   }
 };
 
@@ -117,31 +123,31 @@ const toHomeMessages = (messages: ConversationMessage[]) => {
 
 const loadConversationForUser = async (username: string) => {
   selectedChatUsername = username;
-  homeView.setSelectedUser(username);
+  homeScreen.setSelectedUser(username);
 
   const conversationId = conversationIdByUsername.get(username);
   if (!conversationId) {
-    homeView.setMessages([]);
-    homeView.setStatus(`No conversation with ${username} yet. Send the first message.`);
+    homeScreen.setMessages([]);
+    homeScreen.setStatus(`No conversation with ${username} yet. Send the first message.`);
     return;
   }
 
   const messages = await listConversationMessages(conversationId, 200);
-  homeView.setMessages(toHomeMessages(messages));
-  homeView.setStatus(" ");
+  homeScreen.setMessages(toHomeMessages(messages));
+  homeScreen.setStatus(" ");
 };
 
 const refreshHomeData = async () => {
   if (!currentUsername) {
-    homeView.setUsers([]);
-    homeView.setMessages([]);
-    homeView.setSelectedUser(null);
-    homeView.setStatus("Log in to view conversations", colors.warning);
+    homeScreen.setUsers([]);
+    homeScreen.setMessages([]);
+    homeScreen.setSelectedUser(null);
+    homeScreen.setStatus("Log in to view conversations", colors.warning);
     return;
   }
 
-  homeView.setCurrentUsername(currentUsername);
-  homeView.setStatus("Loading conversations...", colors.warning);
+  homeScreen.setCurrentUsername(currentUsername);
+  homeScreen.setStatus("Loading conversations...", colors.warning);
 
   const [profiles, conversations] = await Promise.all([
     listProfiles(),
@@ -154,7 +160,7 @@ const refreshHomeData = async () => {
     .sort((a, b) => a.localeCompare(b));
 
   const users = chatUsers.map((username) => ({ username }));
-  homeView.setUsers(users);
+  homeScreen.setUsers(users);
 
   const map = new Map<string, string>();
   conversations.forEach((conversation: ConversationSummary) => {
@@ -175,14 +181,14 @@ const refreshHomeData = async () => {
 
   if (users.length === 0) {
     selectedChatUsername = null;
-    homeView.setSelectedUser(null);
-    homeView.setMessages([]);
-    homeView.setStatus("No other users available yet");
+    homeScreen.setSelectedUser(null);
+    homeScreen.setMessages([]);
+    homeScreen.setStatus("No other users available yet");
     return;
   }
 
   selectedChatUsername = users[0]?.username ?? null;
-  homeView.setSelectedUser(selectedChatUsername);
+  homeScreen.setSelectedUser(selectedChatUsername);
   if (selectedChatUsername) {
     await loadConversationForUser(selectedChatUsername);
   }
@@ -192,14 +198,14 @@ const handleSelectChatUser = async (username: string) => {
   try {
     await loadConversationForUser(username);
   } catch (error) {
-    homeView.setStatus(getErrorMessage(error), colors.error);
+    homeScreen.setStatus(getErrorMessage(error), colors.error);
   }
 };
 
 const handleSendMessage = async (toUsername: string, body: string) => {
   const trimmedBody = body.trim();
   if (!trimmedBody) {
-    homeView.setStatus("Type a message first", colors.warning);
+    homeScreen.setStatus("Type a message first", colors.warning);
     return;
   }
 
@@ -209,11 +215,11 @@ const handleSendMessage = async (toUsername: string, body: string) => {
     conversationIdByUsername.set(toUsername, conversationId);
 
     const messages = await listConversationMessages(conversationId, 200);
-    homeView.setMessages(toHomeMessages(messages));
-    homeView.clearComposer();
-    homeView.setStatus(" ");
+    homeScreen.setMessages(toHomeMessages(messages));
+    homeScreen.clearComposer();
+    homeScreen.setStatus(" ");
   } catch (error) {
-    homeView.setStatus(getErrorMessage(error), colors.error);
+    homeScreen.setStatus(getErrorMessage(error), colors.error);
     throw error;
   }
 };
@@ -226,20 +232,20 @@ const handleLogin = async (email: string, password: string) => {
   const e = (email ?? "").trim();
   const p = password ?? "";
   if (!e || !p) {
-    loginView.setStatus("Username/email and password required", "error");
+    loginScreen.setStatus("Username/email and password required", "error");
     return;
   }
 
-  loginView.setStatus("Signing in...", "warning");
+  loginScreen.setStatus("Signing in...", "warning");
   isSubmitting = true;
 
   try {
     const result = await signInWithEmailAndPassword(e, p);
     currentUsername = result.username;
-    loginView.setStatus(`Logged in as ${result.username}`, "success");
+    loginScreen.setStatus(`Logged in as ${result.username}`, "success");
     await showHome();
   } catch (error) {
-    loginView.setStatus(getErrorMessage(error), "error");
+    loginScreen.setStatus(getErrorMessage(error), "error");
   } finally {
     isSubmitting = false;
   }
@@ -254,41 +260,41 @@ const handleSignUp = async (
   const u = (username ?? "").trim();
   const p = password ?? "";
   if (!u || !p) {
-    signUpView.setStatus("Username and password required", "error");
+    signUpScreen.setStatus("Username and password required", "error");
     return;
   }
 
-  signUpView.setStatus("Creating account...", "warning");
+  signUpScreen.setStatus("Creating account...", "warning");
   isSubmitting = true;
 
   try {
     const result = await signUpWithUsernameEmailAndPassword(u, p);
     currentUsername = result.username;
-    signUpView.setStatus(`Logged in as ${result.username}`, "success");
+    signUpScreen.setStatus(`Logged in as ${result.username}`, "success");
     await showHome();
   } catch (error) {
-    signUpView.setStatus(getErrorMessage(error), "error");
+    signUpScreen.setStatus(getErrorMessage(error), "error");
   } finally {
     isSubmitting = false;
   }
 };
 
-loginView = createLoginView(renderer, {
+loginScreen = createLoginScreen(renderer, {
   onSubmit: handleLogin,
   onSignUpClick: showSignUp,
 });
 
-signUpView = createSignUpView(renderer, {
+signUpScreen = createSignUpScreen(renderer, {
   onSubmit: handleSignUp,
   onBackToLogin: showLogin,
 });
 
-homeView = createHomeView(renderer, {
+homeScreen = createHomeScreen(renderer, {
   onSelectUser: handleSelectChatUser,
   onSendMessage: handleSendMessage,
 });
 
-const splashView = createSplashView(renderer, { onEnter: showLogin });
+const splashScreen = createSplashScreen(renderer, { onEnter: showLogin });
 
 renderer.root.on(LayoutEvents.RESIZED, renderCurrentRoute);
 renderCurrentRoute();
@@ -299,7 +305,7 @@ function removeIfPresent(renderer: CliRenderer, id: string) {
   }
 }
 
-function createMinSizeView(renderer: CliRenderer) {
+function createMinSizeScreen(renderer: CliRenderer) {
   const view = new BoxRenderable(renderer, {
     id: "min-size",
     alignItems: "center",

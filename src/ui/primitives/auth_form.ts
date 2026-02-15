@@ -5,8 +5,8 @@ import {
   type RenderContext,
   type Renderable,
 } from "@opentui/core";
-import { createCenteredScreen } from "../../layout";
-import { colors, sizes, spacing, statusStyles, type StatusVariant } from "../../design";
+import { createCenteredScreen } from "../layout";
+import { colors, sizes, spacing, statusStyles, type StatusVariant } from "../design";
 import { createLabel } from "./text";
 
 type AuthFormOptions = {
