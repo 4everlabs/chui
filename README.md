@@ -8,7 +8,7 @@
 ![Convex](https://img.shields.io/badge/backend-Convex-EE342F)
 ![Better%20Auth](https://img.shields.io/badge/auth-Better%20Auth-2563eb)
 ![Status](https://img.shields.io/badge/status-active%20development-f59e0b)
-![Version](https://img.shields.io/badge/version-0.0.3-22c55e)
+![Version](https://img.shields.io/badge/version-0.0.4-22c55e)
 
 CHUI is a user-facing chat interface built with OpenTUI.
 
