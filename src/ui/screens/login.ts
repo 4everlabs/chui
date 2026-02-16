@@ -2,6 +2,7 @@ import {
   InputRenderableEvents,
   TextRenderable,
   type CliRenderer,
+  type KeyEvent,
 } from "@opentui/core";
 import { APP_VERSION } from "../../app/version.js";
 import { colors, sizes, type StatusVariant } from "../design";
@@ -79,6 +80,25 @@ export const createLoginScreen = (
 
   [emailInput, passwordInput].forEach((input) => {
     input.on(InputRenderableEvents.ENTER, submit);
+  });
+
+  const inputs = [emailInput, passwordInput];
+  const focusInputAt = (index: number) => {
+    const total = inputs.length;
+    const safeIndex = ((index % total) + total) % total;
+    inputs[safeIndex]?.focus();
+  };
+
+  inputs.forEach((input, index) => {
+    input.onKeyDown = (key: KeyEvent) => {
+      if (key.name !== "tab") return;
+
+      key.preventDefault();
+      key.stopPropagation();
+
+      const nextIndex = key.shift ? index - 1 : index + 1;
+      focusInputAt(nextIndex);
+    };
   });
 
   return {

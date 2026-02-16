@@ -11,15 +11,23 @@ const versionBadgePattern =
   /!\[Version\]\(https:\/\/img\.shields\.io\/badge\/version-[^-]+-[^)]+\)/;
 
 const bumpPatchVersion = (input: string) => {
-  const parts = input.split(".").map((part) => Number(part));
+  const segments = input.split(".");
+  if (segments.length !== 3) {
+    throw new Error(`Invalid semver version: ${input}`);
+  }
+
+  const [majorRaw, minorRaw, patchRaw] = segments as [string, string, string];
+  const major = Number(majorRaw);
+  const minor = Number(minorRaw);
+  const patch = Number(patchRaw);
   if (
-    parts.length !== 3 ||
-    parts.some((part) => Number.isNaN(part) || part < 0 || !Number.isInteger(part))
+    [major, minor, patch].some((part) =>
+      Number.isNaN(part) || part < 0 || !Number.isInteger(part),
+    )
   ) {
     throw new Error(`Invalid semver version: ${input}`);
   }
 
-  const [major, minor, patch] = parts;
   return `${major}.${minor}.${patch + 1}`;
 };
 
