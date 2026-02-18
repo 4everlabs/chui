@@ -119,8 +119,8 @@ export function createMessageComposer(
       onSubmit = handler;
     },
     setTotalWidth: (_nextTotalWidth: number) => {
-      // Clamp to never exceed initial width; allow shrink on narrow terminals.
-      totalWidth = Math.min(baseTotalWidth, Math.max(24, _nextTotalWidth));
+      // Fully responsive: allow both growth and shrink with viewport changes.
+      totalWidth = Math.max(24, _nextTotalWidth);
       updateWidths();
       syncHeights();
     },

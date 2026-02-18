@@ -48,10 +48,16 @@ export const createHomeScreen = (
   renderer: CliRenderer,
   options: HomeScreenOptions = {},
 ): HomeScreen => {
-  const sidebarWidth = Math.max(22, Math.min(28, Math.floor(renderer.width * 0.24)));
-  const searchInputWidth = Math.max(12, sidebarWidth - 6);
-  const getComposerTotalWidth = () => Math.max(24, renderer.width - sidebarWidth - 16);
-  const composerBaseWidth = Math.min(68, getComposerTotalWidth());
+  const computeSidebarWidth = () => Math.max(22, Math.min(28, Math.floor(renderer.width * 0.24)));
+  const getSearchInputWidth = (sidebarWidth: number) => Math.max(12, sidebarWidth - 6);
+  const getComposerTotalWidth = (sidebarWidth: number) => {
+    // Home view uses left/right padding and a single inter-panel gap.
+    const appHorizontalPadding = spacing.sm * 2;
+    const interPanelGap = spacing.sm;
+    return Math.max(24, renderer.width - sidebarWidth - appHorizontalPadding - interPanelGap);
+  };
+  let sidebarWidth = computeSidebarWidth();
+  const composerBaseWidth = getComposerTotalWidth(sidebarWidth);
 
   let currentUsername = "";
   let selectedUsername: string | null = null;
@@ -83,7 +89,7 @@ export const createHomeScreen = (
 
   const usersSearch = createTextInput(renderer, {
     id: "chat-users-search",
-    width: searchInputWidth,
+    width: getSearchInputWidth(sidebarWidth),
     placeholder: "Search",
   });
   usersPanel.add(usersSearch);
@@ -295,10 +301,19 @@ export const createHomeScreen = (
     userSearchQuery = value;
     renderUsers();
   });
+
+  const syncResponsiveWidths = () => {
+    sidebarWidth = computeSidebarWidth();
+    usersPanel.width = sidebarWidth;
+    usersSearch.width = getSearchInputWidth(sidebarWidth);
+    composer.setTotalWidth(getComposerTotalWidth(sidebarWidth));
+  };
+
   renderer.root.on(LayoutEvents.RESIZED, () => {
-    composer.setTotalWidth(getComposerTotalWidth());
+    syncResponsiveWidths();
   });
 
+  syncResponsiveWidths();
   updateHeader();
   renderUsers();
   renderMessages();
