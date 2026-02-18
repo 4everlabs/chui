@@ -64,6 +64,9 @@ type AppRoute = "splash" | "login" | "signup" | "home";
 
 const minSizeScreen = createMinSizeScreen(renderer);
 let activeRoute: AppRoute = "splash";
+const autoTestProfileEnabled = process.env.CHUI_TEST_PROFILE === "1";
+const autoTestUsername = process.env.CHUI_TEST_USERNAME ?? "test";
+const autoTestPassword = process.env.CHUI_TEST_PASSWORD ?? "test";
 
 let loginScreen: ReturnType<typeof createLoginScreen>;
 let signUpScreen: ReturnType<typeof createSignUpScreen>;
@@ -319,6 +322,36 @@ const handleSignUp = async (
   }
 };
 
+const bootTestProfile = async () => {
+  if (!autoTestProfileEnabled) {
+    return;
+  }
+
+  const username = autoTestUsername.trim();
+  const password = autoTestPassword;
+  if (!username || !password) {
+    showLogin();
+    return;
+  }
+
+  try {
+    const signedUp = await signUpWithUsernameEmailAndPassword(username, password);
+    currentUsername = signedUp.username;
+    clearBottomError();
+    await showHome();
+  } catch {
+    try {
+      const signedIn = await signInWithEmailAndPassword(username, password);
+      currentUsername = signedIn.username;
+      clearBottomError();
+      await showHome();
+    } catch (error) {
+      showLogin();
+      setBottomError(error);
+    }
+  }
+};
+
 loginScreen = createLoginScreen(renderer, {
   onSubmit: handleLogin,
   onSignUpClick: showSignUp,
@@ -338,6 +371,7 @@ const splashScreen = createSplashScreen(renderer, { onEnter: showLogin });
 
 renderer.root.on(LayoutEvents.RESIZED, renderCurrentRoute);
 renderCurrentRoute();
+await bootTestProfile();
 
 function removeIfPresent(view: BoxRenderable, id: string) {
   if (view.getRenderable(id)) {

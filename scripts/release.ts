@@ -76,8 +76,14 @@ const compressAndChecksumAssets = async () => {
 };
 
 const getPreviousTag = async () => {
-  const tag = (await $`sh -lc "git describe --tags --abbrev=0 2>/dev/null || true"`.text()).trim();
-  return tag || null;
+  const latestGitHubReleaseTag = (await $`gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName --jq ".[0].tagName // \"\""`.text()).trim();
+  if (latestGitHubReleaseTag) {
+    return latestGitHubReleaseTag;
+  }
+
+  // Fallback for local/offline workflows.
+  const latestLocalTag = (await $`sh -lc "git describe --tags --abbrev=0 2>/dev/null || true"`.text()).trim();
+  return latestLocalTag || null;
 };
 
 const buildReleaseNotes = async (version: string, previousTag: string | null) => {
@@ -89,7 +95,7 @@ const buildReleaseNotes = async (version: string, previousTag: string | null) =>
   const changes = commitList || "- No user-facing commits found in this range.";
   const sinceLine = previousTag
     ? `Changes since \`${previousTag}\`.`
-    : "First release in this repository.";
+    : "No previous release tag found; including current commit history.";
 
   return [
     `## CHUI ${version}`,

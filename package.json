@@ -7,6 +7,9 @@
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "lint": "oxlint .",
+    "test": "bun test",
+    "test:composer": "bun test tests/message_composer.layout.test.ts",
+    "test:composer:loop": "for i in {1..25}; do bun run test:composer || exit 1; done",
     "check": "bun run lint && bun run build",
     "build": "bun build src/index.ts --target=bun --minify --sourcemap --outdir dist/bundle",
     "bump": "bun run scripts/bump-version.ts",

@@ -31,10 +31,11 @@ export function createMessageComposer(
 ): MessageComposer {
   const idPrefix = options.idPrefix ?? "message-composer";
   const buttonWidth = 6;
-  const sideInset = 0;
   const minLines = 1;
   const maxLines = 5;
   const borderSize = 2;
+  const horizontalPadding = spacing.xs;
+  const bottomPadding = spacing.xs;
   const baseTotalWidth = Math.max(24, options.totalWidth);
 
   let onSubmit = options.onSubmit ?? (() => {});
@@ -44,6 +45,14 @@ export function createMessageComposer(
   let statusColor = colors.textMuted;
 
   const view = new BoxRenderable(renderer, {
+    id: `${idPrefix}-composer`,
+    width: totalWidth,
+    flexDirection: "column",
+    gap: 0,
+    alignItems: "flex-start",
+  });
+
+  const row = new BoxRenderable(renderer, {
     id: `${idPrefix}-row`,
     width: totalWidth,
     flexDirection: "row",
@@ -54,14 +63,14 @@ export function createMessageComposer(
   const inputBox = new BoxRenderable(renderer, {
     id: `${idPrefix}-box`,
     border: true,
-    height: minLines + borderSize,
+    height: minLines + borderSize + bottomPadding,
     minWidth: 12,
     flexDirection: "column",
     gap: 0,
-    paddingLeft: spacing.xs,
-    paddingRight: spacing.xs,
+    paddingLeft: horizontalPadding,
+    paddingRight: horizontalPadding,
     paddingTop: 0,
-    paddingBottom: 0,
+    paddingBottom: bottomPadding,
     alignItems: "flex-start",
     justifyContent: "flex-start",
   });
@@ -86,7 +95,7 @@ export function createMessageComposer(
     id: `${idPrefix}-send-button`,
     label: "send",
     width: buttonWidth,
-    height: minLines + borderSize,
+    height: minLines + borderSize + bottomPadding,
     variant: "primary",
     borderColor: colors.primary,
     backgroundColor: colors.primary,
@@ -101,20 +110,25 @@ export function createMessageComposer(
   });
 
   inputBox.add(input);
-  inputBox.add(statusText);
-  view.add(inputBox);
-  view.add(sendButton);
+  view.add(statusText);
+  row.add(inputBox);
+  row.add(sendButton);
+  view.add(row);
 
   const getStatusLines = () => (statusMessage.trim() ? 1 : 0);
 
   const updateWidths = () => {
-    const innerRowWidth = Math.max(20, totalWidth - sideInset * 2);
+    const innerRowWidth = Math.max(20, totalWidth);
     const inputBoxWidth = Math.max(12, innerRowWidth - buttonWidth - spacing.xs);
-    const inputInnerWidth = Math.max(8, inputBoxWidth - borderSize - spacing.xs * 2);
+    const inputInnerWidth = Math.max(
+      8,
+      inputBoxWidth - borderSize - horizontalPadding * 2,
+    );
     view.width = totalWidth;
+    row.width = totalWidth;
     inputBox.width = inputBoxWidth;
     input.width = inputInnerWidth;
-    statusText.width = inputInnerWidth;
+    statusText.width = totalWidth;
   };
 
   const syncHeights = () => {
@@ -125,11 +139,10 @@ export function createMessageComposer(
     if (nextLines !== composerLines) {
       composerLines = nextLines;
     }
-    const statusLines = getStatusLines();
-
     input.height = composerLines;
-    inputBox.height = composerLines + borderSize + statusLines;
-    sendButton.height = composerLines + borderSize;
+    inputBox.height = composerLines + borderSize + bottomPadding;
+    sendButton.height = inputBox.height;
+    statusText.height = getStatusLines();
   };
   updateWidths();
   syncHeights();
