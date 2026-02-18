@@ -1,6 +1,6 @@
 {
   "name": "chui",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "module": "src/index.tsx",
   "type": "module",
   "private": true,
