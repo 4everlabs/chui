@@ -48,13 +48,25 @@ export const createHomeScreen = (
   renderer: CliRenderer,
   options: HomeScreenOptions = {},
 ): HomeScreen => {
+  const userCardInset = spacing.xs;
   const computeSidebarWidth = () => Math.max(22, Math.min(28, Math.floor(renderer.width * 0.24)));
   const getSearchInputWidth = (sidebarWidth: number) => Math.max(12, sidebarWidth - 6);
   const getComposerTotalWidth = (sidebarWidth: number) => {
     // Home view uses left/right padding and a single inter-panel gap.
     const appHorizontalPadding = spacing.sm * 2;
     const interPanelGap = spacing.sm;
-    return Math.max(24, renderer.width - sidebarWidth - appHorizontalPadding - interPanelGap);
+    // Chat panel also has its own border + horizontal padding that reduce available content width.
+    const chatPanelHorizontalPadding = spacing.xs * 2;
+    const chatPanelBorder = 2;
+    return Math.max(
+      24,
+      renderer.width
+        - sidebarWidth
+        - appHorizontalPadding
+        - interPanelGap
+        - chatPanelHorizontalPadding
+        - chatPanelBorder,
+    );
   };
   let sidebarWidth = computeSidebarWidth();
   const composerBaseWidth = getComposerTotalWidth(sidebarWidth);
@@ -84,7 +96,7 @@ export const createHomeScreen = (
     border: true,
     flexDirection: "column",
     gap: spacing.sm,
-    padding: spacing.sm,
+    padding: userCardInset,
   });
 
   const usersSearch = createTextInput(renderer, {
@@ -154,19 +166,11 @@ export const createHomeScreen = (
   composer.setOnSubmit(() => submitMessage());
   chatPanel.add(composer.view);
 
-  const status = new TextRenderable(renderer, {
-    id: "chat-status",
-    content: " ",
-    fg: colors.textMuted,
-  });
-  chatPanel.add(status);
-
   view.add(usersPanel);
   view.add(chatPanel);
 
   const setStatus = (message: string, color: string = colors.textMuted) => {
-    status.content = message || " ";
-    status.fg = color;
+    composer.setStatus(message, color);
   };
 
   const updateHeader = () => {
@@ -207,11 +211,11 @@ export const createHomeScreen = (
         borderStyle: "single",
         borderColor: selected ? colors.primary : colors.surfaceBorderMuted,
         backgroundColor: selected ? colors.outgoingBubbleBackground : undefined,
-        paddingLeft: spacing.sm,
-        paddingRight: spacing.sm,
+        paddingLeft: userCardInset,
+        paddingRight: userCardInset,
         paddingTop: spacing.xs,
         paddingBottom: spacing.xs,
-        marginBottom: spacing.xs,
+        marginBottom: userCardInset,
         onMouseUp: () => {
           if (selectedUsername !== user.username) {
             selectedUsername = user.username;

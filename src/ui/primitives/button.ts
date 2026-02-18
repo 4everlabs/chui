@@ -7,6 +7,9 @@ export type ButtonOptions = {
   width: number;
   height: number;
   variant?: ButtonVariant;
+  borderColor?: string;
+  textColor?: string;
+  backgroundColor?: string;
   onPress?: () => void;
 };
 
@@ -19,7 +22,8 @@ export function createButton(renderer: RenderContext, options: ButtonOptions) {
     width: options.width,
     height: options.height,
     border: true,
-    borderColor: style.borderColor,
+    borderColor: options.borderColor ?? style.borderColor,
+    backgroundColor: options.backgroundColor,
     alignItems: "center",
     justifyContent: "center",
     onMouseUp: () => {
@@ -30,7 +34,7 @@ export function createButton(renderer: RenderContext, options: ButtonOptions) {
   button.add(
     new TextRenderable(renderer, {
       content: options.label,
-      fg: style.textColor,
+      fg: options.textColor ?? style.textColor,
     }),
   );
 

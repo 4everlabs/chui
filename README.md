@@ -26,6 +26,14 @@ chui
 
 The installer auto-detects Apple Silicon (`arm64`) vs Intel (`x64`), downloads the matching binary from the latest GitHub release, verifies SHA256 checksums, and installs to `/usr/local/bin` (or `~/.local/bin` when needed).
 
+## First launch (login screen)
+
+After you run `chui`, you should land on the login page shown below:
+
+![CHUI login example](./public/ui-screenshot.png)
+
+Use your username/email + password to sign in, or select **Make an account** to create a new profile.
+
 ## Download and install
 
 If you prefer manual installation:
@@ -57,6 +65,13 @@ mv chui /usr/local/bin/chui
 - UI: OpenTUI (`@opentui/core`)
 - Backend: Convex
 - Auth: Better Auth (Convex integration)
+
+## Realtime performance and privacy/compliance
+
+- CHUI uses Convex query subscriptions for realtime updates, so conversation changes propagate automatically without polling.
+- Convex handles reactive query reruns and client updates at the platform level, which keeps UI state in sync and reduces custom realtime plumbing.
+- Privacy/compliance is a shared responsibility: Convex provides security/compliance artifacts (including SOC 2 documentation and DPA materials), but your app configuration, data retention, access control, and legal posture are still your responsibility.
+- CHUI itself is not positioned as a turnkey compliance product out of the box; if you need regulated compliance coverage, treat it as an implementation project with your own controls and review.
 
 ## What CHUI includes right now
 

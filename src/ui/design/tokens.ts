@@ -46,7 +46,7 @@ export const spacing = {
 } as const;
 
 export const viewport = {
-  minWidth: 60,
+  minWidth: 80,
   minHeight: 20,
 } as const;
 
