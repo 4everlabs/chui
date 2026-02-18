@@ -407,7 +407,6 @@ const bootPersistedSession = async () => {
       restoredUsername = await loadUsername();
     }
     if (!restoredUsername) {
-      showLogin();
       return;
     }
 
@@ -428,7 +427,6 @@ const bootPersistedSession = async () => {
         // fall through to normal login path
       }
     }
-    showLogin();
     setBottomError(error);
   }
 };
