@@ -20,12 +20,12 @@ export const colors = {
 
   incomingBubbleBorder: "#FF35C9",
   incomingBubbleBackground: "#FFD0F1",
-  outgoingBubbleBorder: "#29F4FF",
-  outgoingBubbleBackground: "#CFFFFF",
+  outgoingBubbleBorder: "#7A3FC4",
+  outgoingBubbleBackground: "#EAD8FF",
   systemBubbleBorder: "#B86BFF",
   systemBubbleBackground: "#E3D8FF",
   incomingMessageText: "#2B1035",
-  outgoingMessageText: "#07323A",
+  outgoingMessageText: "#000000",
   systemMessageText: "#20113A",
 
   // Backward-compatible aliases (prefer semantic names above in new code)
