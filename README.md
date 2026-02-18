@@ -8,7 +8,7 @@
 ![Convex](https://img.shields.io/badge/backend-Convex-EE342F)
 ![Better%20Auth](https://img.shields.io/badge/auth-Better%20Auth-2563eb)
 ![Status](https://img.shields.io/badge/status-active%20development-f59e0b)
-![Version](https://img.shields.io/badge/version-0.0.19-22c55e)
+![Version](https://img.shields.io/badge/version-0.0.20-22c55e)
 
 CHUI is a terminal-first chat app that feels fast, focused, and keyboard-native.
 
