@@ -10,11 +10,45 @@
 ![Status](https://img.shields.io/badge/status-active%20development-f59e0b)
 ![Version](https://img.shields.io/badge/version-0.0.15-22c55e)
 
-CHUI is a user-facing chat interface built with OpenTUI.
+CHUI is a terminal-first chat app that feels fast, focused, and keyboard-native.
 
-This is not a published npm/Homebrew package right now. Run it from source.
+You can install the latest macOS release directly with one command:
 
-`0.1.0` coming soon!
+```bash
+curl -fsSL https://raw.githubusercontent.com/4everlabs/chui/main/scripts/install.sh | sh
+```
+
+After install, run:
+
+```bash
+chui
+```
+
+The installer auto-detects Apple Silicon (`arm64`) vs Intel (`x64`), downloads the matching binary from the latest GitHub release, verifies SHA256 checksums, and installs to `/usr/local/bin` (or `~/.local/bin` when needed).
+
+## Download and install
+
+If you prefer manual installation:
+
+1. Open the latest release: `https://github.com/4everlabs/chui/releases/latest`
+2. Download the asset that matches your Mac:
+   - `chui-macos-arm64.gz` (Apple Silicon)
+   - `chui-macos-x64.gz` (Intel)
+3. Download `checksums.txt`
+4. Verify checksum:
+
+```bash
+shasum -a 256 chui-macos-arm64.gz
+# compare with checksums.txt
+```
+
+1. Extract and install:
+
+```bash
+gzip -dc chui-macos-arm64.gz > chui
+chmod +x chui
+mv chui /usr/local/bin/chui
+```
 
 ## Tech stack
 
@@ -24,12 +58,23 @@ This is not a published npm/Homebrew package right now. Run it from source.
 - Backend: Convex
 - Auth: Better Auth (Convex integration)
 
-## Current app scope
+## What CHUI includes right now
 
 - Splash screen -> login/signup -> home chat view
 - Account creation and sign in
 - User list + direct conversations
 - Send and read messages in the terminal UI
+
+## UI architecture
+
+CHUI is built on top of OpenTUI core primitives and composed with small reusable building blocks:
+
+- Core renderables from `@opentui/core` (`BoxRenderable`, `TextRenderable`, `ScrollBoxRenderable`, inputs, layout events)
+- Shared design tokens for spacing, colors, sizing, and status styles
+- Reusable primitives for buttons, text input, message composer, and chat bubbles
+- Screen factories that keep each route modular (`splash`, `login`, `signup`, `home`)
+
+Huge thanks to **anomalyco** for creating OpenTUI and making this style of terminal UX possible.
 
 ## Run from source
 

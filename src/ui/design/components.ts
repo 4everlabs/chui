@@ -4,20 +4,20 @@ export type ButtonVariant = "primary" | "accent" | "danger" | "muted";
 
 export const buttonStyles: Record<ButtonVariant, { borderColor: string; textColor: string }> = {
   primary: {
-    borderColor: colors.teal,
-    textColor: colors.teal,
+    borderColor: colors.primary,
+    textColor: colors.primary,
   },
   accent: {
-    borderColor: colors.yellow,
-    textColor: colors.yellow,
+    borderColor: colors.secondary,
+    textColor: colors.secondary,
   },
   danger: {
-    borderColor: colors.red,
-    textColor: colors.red,
+    borderColor: colors.danger,
+    textColor: colors.danger,
   },
   muted: {
-    borderColor: colors.gray500,
-    textColor: colors.gray700,
+    borderColor: colors.surfaceBorderMuted,
+    textColor: colors.textMuted,
   },
 };
 
@@ -37,12 +37,12 @@ export const messageBubbleStyles: Record<
     alignSelf: "flex-start",
   },
   outgoing: {
-    borderColor: colors.teal,
+    borderColor: colors.outgoingBubbleBorder,
     backgroundColor: colors.outgoingBubbleBackground,
     alignSelf: "flex-end",
   },
   system: {
-    borderColor: colors.yellow,
+    borderColor: colors.systemBubbleBorder,
     backgroundColor: colors.systemBubbleBackground,
     alignSelf: "center",
   },
@@ -51,7 +51,7 @@ export const messageBubbleStyles: Record<
 export type StatusVariant = "neutral" | "success" | "warning" | "error";
 
 export const statusStyles: Record<StatusVariant, { textColor: string }> = {
-  neutral: { textColor: colors.gray500 },
+  neutral: { textColor: colors.textMuted },
   success: { textColor: colors.success },
   warning: { textColor: colors.warning },
   error: { textColor: colors.error },

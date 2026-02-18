@@ -5,6 +5,7 @@ import {
 } from "@opentui/core";
 import { colors, createBodyText, sizes, spacing } from "../design";
 import { createButton } from "../primitives/button";
+import { isEnterKey } from "../primitives/keyboard";
 import { createCenteredScreen } from "../layout";
 
 type SplashScreenOptions = {
@@ -29,17 +30,12 @@ export const createSplashScreen = (
     onPress: options.onEnter,
   });
   enterButton.onKeyDown = (key) => {
-    if (key.name === "return" || key.name === "enter" || key.sequence === "\r") {
+    if (isEnterKey(key)) {
       options.onEnter();
     }
   };
 
   const splashView = createCenteredScreen(renderer, "splash");
-  splashView.onKeyDown = (key) => {
-    if (key.name === "return" || key.name === "enter" || key.sequence === "\r") {
-      options.onEnter();
-    }
-  };
 
   const splashContent = new BoxRenderable(renderer, {
     flexDirection: "column",
@@ -50,7 +46,7 @@ export const createSplashScreen = (
     new ASCIIFontRenderable(renderer, {
       font: "block",
       text: "CHUI",
-      color: colors.teal,
+      color: colors.primary,
     }),
   );
   splashContent.add(createBodyText(renderer, "instant messenger for the terminal"));

@@ -1,4 +1,6 @@
-import { mkdir, readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { $ } from "bun";
 
 const RELEASE_DIR = "dist/release";
@@ -27,6 +29,10 @@ const ensureGhAuth = async () => {
   await $`gh auth status`;
 };
 
+const ensureCrossArchOpentuiDeps = async () => {
+  await $`bun add --no-save --os darwin --cpu x64 @opentui/core-darwin-x64@0.1.77`;
+};
+
 const createMacBinaries = async () => {
   await mkdir(RELEASE_DIR, { recursive: true });
 
@@ -34,8 +40,39 @@ const createMacBinaries = async () => {
     const arch = target.endsWith("arm64") ? "arm64" : "x64";
     const out = `${RELEASE_DIR}/chui-macos-${arch}`;
     console.log(`Building ${target} -> ${out}`);
-    await $`bun build src/index.ts --compile --format=esm --bytecode --minify --target=${target} --outfile ${out}`;
+    await $`bun build src/index.ts --compile --format=esm --minify --target=${target} --outfile ${out}`;
   }
+};
+
+const sha256Hex = async (path: string) => {
+  const hash = createHash("sha256");
+  const content = await readFile(path);
+  hash.update(content);
+  return hash.digest("hex");
+};
+
+const compressAndChecksumAssets = async () => {
+  const assets = ["chui-macos-arm64", "chui-macos-x64"];
+  const checksumLines: string[] = [];
+  const gzAssets: string[] = [];
+
+  for (const asset of assets) {
+    const srcPath = `${RELEASE_DIR}/${asset}`;
+    const gzPath = `${srcPath}.gz`;
+    const srcBuffer = await readFile(srcPath);
+    const gzBuffer = gzipSync(srcBuffer, { level: 9 });
+    await writeFile(gzPath, gzBuffer);
+    const digest = await sha256Hex(gzPath);
+    checksumLines.push(`${digest}  ${asset}.gz`);
+    gzAssets.push(gzPath);
+  }
+
+  const checksumsPath = `${RELEASE_DIR}/checksums.txt`;
+  await writeFile(checksumsPath, `${checksumLines.join("\n")}\n`, "utf8");
+  return {
+    gzAssets,
+    checksumsPath,
+  };
 };
 
 const main = async () => {
@@ -44,22 +81,23 @@ const main = async () => {
 
   await $`bun run bump`;
   await $`bun run check`;
+  await ensureCrossArchOpentuiDeps();
   await createMacBinaries();
+  const { gzAssets, checksumsPath } = await compressAndChecksumAssets();
 
   const version = await versionFromPackage();
   const tag = `v${version}`;
   const releaseTitle = `v${version}`;
-  const armAsset = `${RELEASE_DIR}/chui-macos-arm64`;
-  const x64Asset = `${RELEASE_DIR}/chui-macos-x64`;
+  const [armAsset, x64Asset] = gzAssets;
 
   await $`git add package.json README.md src/app/version.ts`;
   await $`git commit -m ${`chore(release): ${tag}`}`;
   await $`git tag ${tag}`;
   await $`git push`;
   await $`git push origin ${tag}`;
-  await $`gh release create ${tag} ${armAsset} ${x64Asset} --title ${releaseTitle} --generate-notes`;
+  await $`gh release create ${tag} ${armAsset} ${x64Asset} ${checksumsPath} --title ${releaseTitle} --generate-notes`;
 
-  console.log(`Release ${tag} published with macOS arm64 + x64 binaries.`);
+  console.log(`Release ${tag} published with compressed macOS binaries and checksums.`);
 };
 
 await main();

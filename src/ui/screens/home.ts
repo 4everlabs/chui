@@ -11,6 +11,11 @@ import { colors, spacing } from "../design";
 import { createMessageComposer } from "../primitives/message_composer";
 import { createTextBubble } from "../primitives/text_bubble";
 import { createTextInput } from "../primitives/text_input";
+import {
+  filterUsersByQuery,
+  sortMessagesByCreatedAt,
+  toErrorMessage,
+} from "./home_utils";
 
 export type HomeChatUser = {
   username: string;
@@ -101,7 +106,7 @@ export const createHomeScreen = (
   const usersListTitle = new TextRenderable(renderer, {
     id: "chat-users-list-title",
     content: "User List",
-    fg: colors.gray100,
+    fg: colors.textPrimary,
     attributes: TextAttributes.BOLD,
   });
   usersListTitleWrap.add(usersListTitle);
@@ -121,7 +126,7 @@ export const createHomeScreen = (
   const chatHeader = new TextRenderable(renderer, {
     id: "chat-header",
     content: " ",
-    fg: colors.gray100,
+    fg: colors.textPrimary,
   });
   chatPanel.add(chatHeader);
 
@@ -146,14 +151,14 @@ export const createHomeScreen = (
   const status = new TextRenderable(renderer, {
     id: "chat-status",
     content: " ",
-    fg: colors.gray500,
+    fg: colors.textMuted,
   });
   chatPanel.add(status);
 
   view.add(usersPanel);
   view.add(chatPanel);
 
-  const setStatus = (message: string, color: string = colors.gray500) => {
+  const setStatus = (message: string, color: string = colors.textMuted) => {
     status.content = message || " ";
     status.fg = color;
   };
@@ -172,9 +177,7 @@ export const createHomeScreen = (
     userRowIds = [];
 
     const q = userSearchQuery.trim().toLowerCase();
-    const visibleUsers = q
-      ? users.filter((user) => user.username.toLowerCase().includes(q))
-      : users;
+    const visibleUsers = filterUsersByQuery(users, userSearchQuery);
 
     if (visibleUsers.length === 0) {
       const id = "chat-user-empty";
@@ -182,7 +185,7 @@ export const createHomeScreen = (
         new TextRenderable(renderer, {
           id,
           content: q ? "No match" : "No users found",
-          fg: colors.gray500,
+          fg: colors.textMuted,
         }),
       );
       userRowIds.push(id);
@@ -196,7 +199,7 @@ export const createHomeScreen = (
         id,
         border: true,
         borderStyle: "single",
-        borderColor: selected ? colors.teal : colors.gray700,
+        borderColor: selected ? colors.primary : colors.surfaceBorderMuted,
         backgroundColor: selected ? colors.outgoingBubbleBackground : undefined,
         paddingLeft: spacing.sm,
         paddingRight: spacing.sm,
@@ -213,8 +216,7 @@ export const createHomeScreen = (
           }
 
           Promise.resolve(options.onSelectUser?.(user.username)).catch((error) => {
-            const message = error instanceof Error ? error.message : String(error);
-            setStatus(message, colors.error);
+            setStatus(toErrorMessage(error), colors.error);
           });
         },
       });
@@ -222,7 +224,7 @@ export const createHomeScreen = (
       row.add(
         new TextRenderable(renderer, {
           content: user.username,
-          fg: selected ? colors.gray700 : colors.gray100,
+          fg: selected ? colors.textInverted : colors.textPrimary,
         }),
       );
 
@@ -281,8 +283,7 @@ export const createHomeScreen = (
         setStatus(" ");
       })
       .catch((error) => {
-        const message = error instanceof Error ? error.message : String(error);
-        setStatus(message, colors.error);
+        setStatus(toErrorMessage(error), colors.error);
       })
       .finally(() => {
         sending = false;
@@ -332,7 +333,7 @@ export const createHomeScreen = (
       renderMessages();
     },
     setMessages: (nextMessages: HomeChatMessage[]) => {
-      messages = [...nextMessages].sort((a, b) => a.createdAt - b.createdAt);
+      messages = sortMessagesByCreatedAt(nextMessages);
       renderMessages();
     },
     clearComposer: () => {

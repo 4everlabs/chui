@@ -109,7 +109,7 @@ export function createAuthFormLayout(
     row.add(
       new TextRenderable(renderer, {
         content: linkOptions.text,
-        fg: linkOptions.color ?? colors.teal,
+        fg: linkOptions.color ?? colors.accent,
         attributes: linkOptions.underline ? TextAttributes.UNDERLINE : undefined,
       }),
     );

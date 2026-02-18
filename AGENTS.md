@@ -81,10 +81,30 @@ What it does, in order:
    - `src/app/version.ts`
 7. Creates a git tag: `v<version>`
 8. Pushes commit and tag
-9. Creates a GitHub Release and uploads the two macOS binaries
+9. Creates gzip archives for each macOS binary
+10. Generates `dist/release/checksums.txt` with SHA256 checksums
+11. Creates a GitHub Release and uploads:
+   - `chui-macos-arm64.gz`
+   - `chui-macos-x64.gz`
+   - `checksums.txt`
 
 Release result:
-- A new GitHub release with two attached assets (arm64 + x64 macOS binaries).
+- A new GitHub release with compressed macOS binaries + checksum file.
+
+## One-Line Install (curl + verify)
+
+Use this to install the latest release in one command:
+
+`curl -fsSL https://raw.githubusercontent.com/4everlabs/chui/main/scripts/install.sh | sh`
+
+What this installer does:
+1. Detects your mac architecture (`arm64` or `x64`)
+2. Downloads the matching `.gz` release asset
+3. Downloads `checksums.txt`
+4. Verifies SHA256 checksum before install
+5. Extracts and installs the binary to:
+   - `/usr/local/bin` (if writable), otherwise
+   - `~/.local/bin`
 
 ## Daily Workflow
 

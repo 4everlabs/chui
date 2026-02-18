@@ -15,18 +15,18 @@ export type MessageTextVariant = "incoming" | "outgoing" | "system";
 
 export const textStyles: Record<TextVariant, TextStyle> = {
   heading: {
-    fg: colors.teal,
+    fg: colors.primary,
     attributes: TextAttributes.BOLD,
   },
   subheading: {
-    fg: colors.yellow,
+    fg: colors.secondary,
     attributes: TextAttributes.BOLD,
   },
   body: {
-    fg: colors.gray300,
+    fg: colors.textSecondary,
   },
   muted: {
-    fg: colors.gray500,
+    fg: colors.textMuted,
   },
 };
 
