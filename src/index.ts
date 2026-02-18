@@ -35,11 +35,13 @@ import {
   isViewportSupported,
   spacing,
 } from "./ui/design/index.js";
+import { applyTextCursorStyle } from "./ui/primitives/cursor.js";
 
 const renderer = await createCliRenderer({
   exitOnCtrlC: true,
   targetFps: 30,
 });
+applyTextCursorStyle(renderer);
 
 const appShell = new BoxRenderable(renderer, {
   id: "app-shell",

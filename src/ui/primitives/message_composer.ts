@@ -83,6 +83,10 @@ export function createMessageComposer(
     width: 8,
     height: minLines,
     wrapMode: "char",
+    cursorStyle: {
+      style: "line",
+      blinking: true,
+    },
     placeholder: options.placeholder,
     onSubmit: () => onSubmit(),
     onContentChange: () => syncHeights(),
