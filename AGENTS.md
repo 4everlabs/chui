@@ -1,3 +1,139 @@
+# CHUI Release + Build Commands
+
+This project uses a simple local workflow:
+
+- Use GitHub Desktop for normal commits and pushes.
+- Run one CLI command when you want a release.
+- No automatic release is triggered by commit or push.
+
+## Command List
+
+These are the only day-to-day commands you need.
+
+### `bun run check`
+
+Purpose:
+- Run a fast local validation pass before commit or before release.
+
+What it does:
+1. Runs `bun run lint`
+2. Runs `bun run build`
+
+When to run:
+- Before commits (optional but recommended)
+- Always runs automatically inside `bun run release`
+
+Expected output:
+- Lint must pass with no blocking errors.
+- Bundle build must succeed and output files to `dist/bundle`.
+
+---
+
+### `bun run build`
+
+Purpose:
+- Build a bundled app output to catch build-time errors.
+
+What it does:
+- Executes Bun bundling from `src/index.ts` into `dist/bundle` with minification and sourcemaps.
+
+When to run:
+- If you changed app code and want a quick build sanity check.
+- Automatically via `bun run check`.
+
+Important note:
+- This is not the final release binary step. It is the fast dev build check.
+
+---
+
+### `bun run bump`
+
+Purpose:
+- Bump patch version for a release.
+
+What it does:
+1. Increments patch version in `package.json` (for example `0.0.12 -> 0.0.13`)
+2. Updates version badge in `README.md` if present
+3. Updates app version constant in `src/app/version.ts`
+
+When to run:
+- Only when preparing a release.
+- This step is handled automatically by `bun run release`.
+
+---
+
+### `bun run release`
+
+Purpose:
+- Do the complete release flow in one command (macOS binaries only).
+
+What it does, in order:
+1. Verifies git working tree is clean
+2. Verifies GitHub CLI auth (`gh auth status`)
+3. Runs `bun run bump`
+4. Runs `bun run check`
+5. Builds release binaries:
+   - `dist/release/chui-macos-arm64`
+   - `dist/release/chui-macos-x64`
+6. Commits versioned files:
+   - `package.json`
+   - `README.md`
+   - `src/app/version.ts`
+7. Creates a git tag: `v<version>`
+8. Pushes commit and tag
+9. Creates a GitHub Release and uploads the two macOS binaries
+
+Release result:
+- A new GitHub release with two attached assets (arm64 + x64 macOS binaries).
+
+## Daily Workflow
+
+### Normal development (no release)
+
+Use GitHub Desktop as usual:
+1. Edit code
+2. (Optional) run `bun run check`
+3. Commit in GitHub Desktop
+4. Push in GitHub Desktop
+
+No release is created by these steps.
+
+### Publish a release
+
+1. Make sure your current branch is the one you want to release from.
+2. Ensure all intended changes are already committed.
+3. Run:
+   - `bun run release`
+4. Wait for completion message.
+5. Confirm release assets on GitHub Releases page.
+
+## One-Time Setup Requirements
+
+Before using `bun run release`:
+
+1. Install Bun dependencies:
+   - `bun install`
+2. Install and authenticate GitHub CLI:
+   - `gh auth login`
+3. Ensure your git remote `origin` points to the correct GitHub repo.
+
+## Failure Recovery
+
+If `bun run release` fails:
+
+- If it fails before commit/tag:
+  - Fix the error and rerun `bun run release`.
+- If commit is created but tag/release upload fails:
+  - Fix auth/network issue and rerun the remaining git/gh commands manually.
+- If release already exists for tag:
+  - Use `gh release upload <tag> <asset paths> --clobber` to replace assets.
+
+## Why This Flow Is Simple
+
+- Commit/push stays separate from release.
+- One command handles version bump + binary build + release upload.
+- Only two release artifacts are produced (macOS arm64 and x64).
+- No noisy CI automation is required for releases.
 # Repository Guidelines
 
 ## Project Structure & Module Organization
