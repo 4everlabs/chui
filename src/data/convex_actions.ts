@@ -5,11 +5,6 @@ import {
 } from "./convex.js";
 import { clearAuthToken, setAuthToken } from "./session.js";
 
-type LoginResult = {
-  userId: string;
-  username: string;
-};
-
 const runMutation = async <TResult>(
   path: string,
   args: Record<string, unknown>,
@@ -69,7 +64,7 @@ export const signInWithEmailAndPassword = async (
 };
 
 export const listProfiles = async (): Promise<{ username: string; email?: string }[]> => {
-  return await runQuery("users:listProfiles", {});
+  return await runQuery("auth:listProfiles", {});
 };
 
 export type ConversationSummary = {
@@ -123,8 +118,4 @@ export const signOut = async (): Promise<void> => {
 
 export const getCurrentUser = async () => {
   return await runQuery<unknown>("auth:getCurrentUser", {});
-};
-
-export const upsertByUsername = async (username: string): Promise<LoginResult> => {
-  return await runMutation<LoginResult>("users:upsertByUsername", { username });
 };

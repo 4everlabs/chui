@@ -147,3 +147,19 @@ export const getCurrentUser = query({
     };
   },
 });
+
+export const listProfiles = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return [];
+    }
+
+    const profiles = await ctx.db.query("profiles").collect();
+    return profiles.map((p) => ({
+      username: p.username,
+      email: p.email,
+    }));
+  },
+});
