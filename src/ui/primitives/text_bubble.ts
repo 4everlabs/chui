@@ -22,6 +22,7 @@ export function createTextBubble(renderer: RenderContext, options: TextBubbleOpt
     id: options.id,
     alignSelf: bubbleStyle.alignSelf,
     maxWidth: sizes.bubbleMaxWidth,
+    marginBottom: spacing.xs,
     padding: 0,
     alignItems: "stretch",
   });

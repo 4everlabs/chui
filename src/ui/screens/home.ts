@@ -146,22 +146,24 @@ export const createHomeScreen = (
     flexDirection: "column",
     flexGrow: 1,
     padding: spacing.xs,
-    gap: spacing.xs,
+    gap: 0,
   });
-
-  const chatHeader = new TextRenderable(renderer, {
-    id: "chat-header",
-    content: " ",
-    fg: colors.textPrimary,
-  });
-  chatPanel.add(chatHeader);
 
   const messagesScroll = new ScrollBoxRenderable(renderer, {
     id: "chat-messages-scroll",
     flexGrow: 1,
     stickyScroll: true,
     stickyStart: "bottom",
-    padding: spacing.xs,
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingLeft: spacing.xs,
+    paddingRight: spacing.xs,
+    verticalScrollbarOptions: {
+      visible: false,
+    },
+    horizontalScrollbarOptions: {
+      visible: false,
+    },
   });
   chatPanel.add(messagesScroll);
 
@@ -181,14 +183,7 @@ export const createHomeScreen = (
     composer.setStatus(message, color);
   };
 
-  const updateHeader = () => {
-    if (!selectedUsername) {
-      chatHeader.content = " ";
-      return;
-    }
-
-    chatHeader.content = `Chat with ${selectedUsername}`;
-  };
+  const updateHeader = () => {};
 
   const renderUsers = () => {
     userRowIds.forEach((id) => usersScroll.remove(id));
