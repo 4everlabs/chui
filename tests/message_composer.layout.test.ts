@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 describe("message composer layout", () => {
-  test("keeps bottom input padding equal to side padding", async () => {
+  test("keeps bottom input padding at zero while preserving side padding", async () => {
     const testSetup = await createTestRenderer({ width: 120, height: 40 });
     cleanup = () => testSetup.renderer.destroy();
 
@@ -30,8 +30,7 @@ describe("message composer layout", () => {
     const bottomInset = contentBottom - (input.y + input.height);
     const horizontalInset = input.x - (inputBox.x + 1);
 
-    expect(bottomInset).toBe(horizontalInset);
-    expect(bottomInset).toBe(spacing.xs);
+    expect(bottomInset).toBe(0);
     expect(horizontalInset).toBe(spacing.xs);
   });
 
