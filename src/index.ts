@@ -217,7 +217,7 @@ const loadConversationForUser = async (username: string) => {
       return;
     }
     homeScreen.setMessages([]);
-    homeScreen.setStatus(`No conversation with ${username} yet. Send the first message.`);
+    homeScreen.setStatus(" ");
     return;
   }
 
@@ -282,7 +282,7 @@ const refreshHomeData = async () => {
   selectedChatUsername = null;
   homeScreen.setSelectedUser(null);
   homeScreen.setMessages([]);
-  homeScreen.setStatus("Select a user to view messages");
+  homeScreen.setStatus(" ");
 };
 
 const handleSelectChatUser = async (username: string) => {

@@ -253,6 +253,23 @@ export const createHomeScreen = (
     messageRowIds = [];
 
     if (messages.length === 0) {
+      const emptyId = "chat-message-empty";
+      const emptyState = new BoxRenderable(renderer, {
+        id: emptyId,
+        width: "100%",
+        flexGrow: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingBottom: spacing.md,
+      });
+      emptyState.add(
+        new TextRenderable(renderer, {
+          content: selectedUsername ? "No messages yet. Send the first message." : "Select a user to view messages",
+          fg: colors.textMuted,
+        }),
+      );
+      messagesScroll.add(emptyState);
+      messageRowIds.push(emptyId);
       return;
     }
 
