@@ -5,7 +5,7 @@
 [![Bun](https://img.shields.io/badge/runtime-Bun-black?logo=bun&logoColor=white)](https://bun.com)
 [![OpenTUI](https://img.shields.io/badge/interface-OpenTUI-0f172a)](https://opentui.com)
 [![Convex](https://img.shields.io/badge/backend-Convex-EE342F)](https://www.convex.dev)
-[![Version](https://img.shields.io/badge/version-0.0.24-22c55e)](https://github.com/4everlabs/chui/releases/tag/v0.0.23)
+[![Version](https://img.shields.io/badge/version-0.0.25-22c55e)](https://github.com/4everlabs/chui/releases/tag/v0.0.23)
 
 CHUI is a terminal-first direct messaging app built with [OpenTUI](https://opentui.com) and backed by [Convex](https://www.convex.dev).
 It is designed to be fast, keyboard-native, and focused on clean conversation flow.
