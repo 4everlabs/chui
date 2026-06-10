@@ -36,6 +36,7 @@ import {
   spacing,
 } from "./ui/design/index.js";
 import { applyTextCursorStyle } from "./ui/primitives/cursor.js";
+import { isCtrlCKey } from "./ui/primitives/keyboard.js";
 import {
   parseUsername,
   parseUsernameOrThrow,
@@ -543,6 +544,16 @@ homeScreen = createHomeScreen(renderer, {
 });
 
 const splashScreen = createSplashScreen(renderer, { onEnter: showLogin });
+
+renderer.keyInput.on("keypress", (key) => {
+  if (activeRoute !== "splash" || isCtrlCKey(key)) {
+    return;
+  }
+
+  key.preventDefault();
+  key.stopPropagation();
+  showLogin();
+});
 
 renderer.root.on(LayoutEvents.RESIZED, renderCurrentRoute);
 renderCurrentRoute();

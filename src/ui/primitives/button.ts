@@ -1,5 +1,6 @@
 import { BoxRenderable, TextRenderable, type RenderContext } from "@opentui/core";
 import { buttonStyles, type ButtonVariant } from "../design";
+import { isActivationKey } from "./keyboard";
 
 export type ButtonOptions = {
   id?: string;
@@ -25,6 +26,7 @@ export function createButton(renderer: RenderContext, options: ButtonOptions) {
     borderStyle: "single",
     borderColor: options.borderColor ?? style.borderColor,
     backgroundColor: options.backgroundColor,
+    focusable: true,
     alignItems: "center",
     justifyContent: "center",
     onMouseUp: () => {
@@ -38,6 +40,12 @@ export function createButton(renderer: RenderContext, options: ButtonOptions) {
       fg: options.textColor ?? style.textColor,
     }),
   );
+  button.onKeyDown = (key) => {
+    if (!isActivationKey(key)) return;
+    key.preventDefault();
+    key.stopPropagation();
+    options.onPress?.();
+  };
 
   return button;
 }

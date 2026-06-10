@@ -5,7 +5,6 @@ import {
 } from "@opentui/core";
 import { colors, createBodyText, sizes, spacing } from "../design";
 import { createButton } from "../primitives/button";
-import { isEnterKey } from "../primitives/keyboard";
 import { createCenteredScreen } from "../layout";
 
 type SplashScreenOptions = {
@@ -29,11 +28,6 @@ export const createSplashScreen = (
     variant: "accent",
     onPress: options.onEnter,
   });
-  enterButton.onKeyDown = (key) => {
-    if (isEnterKey(key)) {
-      options.onEnter();
-    }
-  };
 
   const splashView = createCenteredScreen(renderer, "splash");
 
