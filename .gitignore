@@ -5,3 +5,4 @@ node_modules/
 convex/.env.local
 convex/_generated/
 dist/
+logs/

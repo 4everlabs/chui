@@ -42,12 +42,17 @@ import {
   USERNAME_RULES_TEXT,
   type Username,
 } from "../shared/username.js";
+import { debugLog } from "./app/debug_log.js";
 
 const renderer = await createCliRenderer({
   exitOnCtrlC: true,
   targetFps: 30,
 });
 applyTextCursorStyle(renderer);
+debugLog("app started", {
+  width: renderer.width,
+  height: renderer.height,
+});
 
 const appShell = new BoxRenderable(renderer, {
   id: "app-shell",
@@ -124,11 +129,13 @@ const renderCurrentRoute = () => {
 
 const showHome = async () => {
   activeRoute = "home";
+  debugLog("route changed", { route: activeRoute });
   clearBottomError();
   renderCurrentRoute();
   try {
     await refreshHomeData();
   } catch (error) {
+    debugLog("home refresh failed", { error });
     homeScreen.setUsers([]);
     homeScreen.setMessages([]);
     homeScreen.setSelectedUser(null);
@@ -139,12 +146,14 @@ const showHome = async () => {
 
 const showLogin = () => {
   activeRoute = "login";
+  debugLog("route changed", { route: activeRoute });
   clearBottomError();
   renderCurrentRoute();
 };
 
 const showSignUp = () => {
   activeRoute = "signup";
+  debugLog("route changed", { route: activeRoute });
   clearBottomError();
   renderCurrentRoute();
 };
@@ -155,6 +164,7 @@ const getErrorMessage = (error: unknown) => {
 
 const setBottomError = (error: unknown) => {
   const message = getErrorMessage(error).trim();
+  debugLog("bottom error set", { message: message || "Unknown error" });
   appErrorLine.content = message || "Unknown error";
 };
 
@@ -220,6 +230,7 @@ const loadConversationForUser = async (username: Username) => {
   const loadId = ++activeConversationLoadId;
   selectedChatUsername = username;
   homeScreen.setSelectedUser(username);
+  debugLog("conversation selected", { username, loadId });
 
   const conversationId = conversationIdByUsername.get(username);
   if (!conversationId) {
@@ -228,6 +239,7 @@ const loadConversationForUser = async (username: Username) => {
     }
     homeScreen.setMessages([]);
     homeScreen.setStatus(" ");
+    debugLog("conversation empty", { username, loadId });
     return;
   }
 
@@ -237,10 +249,17 @@ const loadConversationForUser = async (username: Username) => {
   }
   homeScreen.setMessages(toHomeMessages(messages));
   homeScreen.setStatus(" ");
+  debugLog("conversation loaded", {
+    username,
+    loadId,
+    conversationId,
+    messageCount: messages.length,
+  });
 };
 
 const refreshHomeData = async () => {
   if (!currentUsername) {
+    debugLog("home refresh skipped", { reason: "missing current username" });
     homeScreen.setUsers([]);
     homeScreen.setMessages([]);
     homeScreen.setSelectedUser(null);
@@ -250,6 +269,7 @@ const refreshHomeData = async () => {
 
   homeScreen.setCurrentUsername(currentUsername);
   homeScreen.setStatus("Loading conversations...", colors.warning);
+  debugLog("home refresh started", { currentUsername });
 
   const [profiles, conversations] = await Promise.all([
     listProfiles(),
@@ -263,6 +283,11 @@ const refreshHomeData = async () => {
 
   const users = chatUsers.map((username) => ({ username }));
   homeScreen.setUsers(users);
+  debugLog("home refresh loaded", {
+    profileCount: profiles.length,
+    chatUserCount: users.length,
+    conversationCount: conversations.length,
+  });
 
   const map = new Map<Username, string>();
   conversations.forEach((conversation: ConversationSummary) => {
@@ -299,6 +324,7 @@ const handleSelectChatUser = async (username: string) => {
   try {
     await loadConversationForUser(parseUsernameOrThrow(username));
   } catch (error) {
+    debugLog("conversation load failed", { username, error });
     homeScreen.setStatus("Unable to load chat", colors.error);
     setBottomError(error);
   }
@@ -313,6 +339,10 @@ const handleSendMessage = async (toUsername: string, body: string) => {
 
   try {
     const normalizedToUsername = parseUsernameOrThrow(toUsername);
+    debugLog("message send started", {
+      toUsername: normalizedToUsername,
+      bodyLength: trimmedBody.length,
+    });
     const result = await sendDirectMessage(normalizedToUsername, trimmedBody);
     const conversationId = String(result.conversationId);
     conversationIdByUsername.set(normalizedToUsername, conversationId);
@@ -327,7 +357,13 @@ const handleSendMessage = async (toUsername: string, body: string) => {
     homeScreen.clearComposer();
     homeScreen.setStatus(" ");
     clearBottomError();
+    debugLog("message sent", {
+      toUsername: normalizedToUsername,
+      conversationId,
+      messageId: result.messageId,
+    });
   } catch (error) {
+    debugLog("message send failed", { toUsername, error });
     homeScreen.setStatus("Unable to send message", colors.error);
     setBottomError(error);
   }
@@ -347,14 +383,20 @@ const handleLogin = async (email: string, password: string) => {
 
   loginScreen.setStatus("Signing in...", "warning");
   isSubmitting = true;
+  debugLog("login started", { hasIdentifier: Boolean(e) });
 
   try {
     const result = await signInWithEmailAndPassword(e, p);
     currentUsername = result.username;
+    debugLog("login succeeded", {
+      username: result.username,
+      userId: result.userId,
+    });
     loginScreen.setStatus(`Logged in as ${result.username}`, "success");
     clearBottomError();
     await showHome();
   } catch (error) {
+    debugLog("login failed", { error });
     loginScreen.setStatus("Login failed", "error");
     setBottomError(error);
   } finally {
@@ -377,14 +419,20 @@ const handleSignUp = async (
 
   signUpScreen.setStatus("Creating account...", "warning");
   isSubmitting = true;
+  debugLog("signup started", { username: parsedUsername });
 
   try {
     const result = await signUpWithUsernameEmailAndPassword(parsedUsername, p);
     currentUsername = result.username;
+    debugLog("signup succeeded", {
+      username: result.username,
+      userId: result.userId,
+    });
     signUpScreen.setStatus(`Logged in as ${result.username}`, "success");
     clearBottomError();
     await showHome();
   } catch (error) {
+    debugLog("signup failed", { username: parsedUsername, error });
     signUpScreen.setStatus("Sign up failed", "error");
     setBottomError(error);
   } finally {
@@ -396,10 +444,12 @@ const bootTestProfile = async () => {
   if (!autoTestProfileEnabled) {
     return;
   }
+  debugLog("test profile boot started", { autoTestUsername });
 
   const username = parseUsername(autoTestUsername);
   const password = autoTestPassword;
   if (!username || !password) {
+    debugLog("test profile boot skipped", { reason: "invalid credentials" });
     showLogin();
     return;
   }
@@ -407,15 +457,24 @@ const bootTestProfile = async () => {
   try {
     const signedUp = await signUpWithUsernameEmailAndPassword(username, password);
     currentUsername = signedUp.username;
+    debugLog("test profile signup succeeded", {
+      username: signedUp.username,
+      userId: signedUp.userId,
+    });
     clearBottomError();
     await showHome();
   } catch {
     try {
       const signedIn = await signInWithEmailAndPassword(username, password);
       currentUsername = signedIn.username;
+      debugLog("test profile login succeeded", {
+        username: signedIn.username,
+        userId: signedIn.userId,
+      });
       clearBottomError();
       await showHome();
     } catch (error) {
+      debugLog("test profile boot failed", { username, error });
       showLogin();
       setBottomError(error);
     }
@@ -423,6 +482,8 @@ const bootTestProfile = async () => {
 };
 
 const bootPersistedSession = async () => {
+  debugLog("persisted session boot started");
+
   const loadUsername = async () => {
     const user = await getCurrentUser();
     return inferUsernameFromCurrentUser(user);
@@ -431,26 +492,34 @@ const bootPersistedSession = async () => {
   try {
     let restoredUsername = await loadUsername();
     if (!restoredUsername && await restoreConvexAuthFromSession()) {
+      debugLog("persisted session token refreshed");
       restoredUsername = await loadUsername();
     }
     if (!restoredUsername) {
+      debugLog("persisted session unavailable");
       return;
     }
 
     currentUsername = restoredUsername;
+    debugLog("persisted session restored", { username: restoredUsername });
     clearBottomError();
     await showHome();
   } catch (error) {
+    debugLog("persisted session load failed", { error });
     if (await restoreConvexAuthFromSession()) {
       try {
         const restoredUsername = await loadUsername();
         if (restoredUsername) {
           currentUsername = restoredUsername;
+          debugLog("persisted session restored after refresh", {
+            username: restoredUsername,
+          });
           clearBottomError();
           await showHome();
           return;
         }
-      } catch {
+      } catch (refreshError) {
+        debugLog("persisted session refresh failed", { error: refreshError });
         // fall through to normal login path
       }
     }
